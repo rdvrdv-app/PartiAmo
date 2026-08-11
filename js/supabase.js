@@ -149,7 +149,12 @@ const Supa = (function () {
 
     async saveTrip(trip) {
       const c = this.getClient();
-      if (!c || !currentUser || !trip || !trip.dest) return null;
+      if (!c || !trip || !trip.dest) return null;
+      let u = currentUser;
+      if (!u && c.auth) {
+        try { const { data } = await c.auth.getUser(); u = data ? data.user : null; } catch (e) {}
+      }
+      if (!u) return null;
 
       try {
         const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trip.id || "");
@@ -160,16 +165,18 @@ const Supa = (function () {
                       const r = Math.random() * 16 | 0;
                       return (char === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
                     });
+          if (typeof Store !== "undefined" && Store.save) Store.save();
         }
         if (!trip.inviteCode) {
           const cleanDest = trip.dest.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 6);
           const randNum = Math.floor(1000 + Math.random() * 9000);
           trip.inviteCode = `${cleanDest || "TRIP"}-${randNum}`;
+          if (typeof Store !== "undefined" && Store.save) Store.save();
         }
 
         const { data: tripData, error: tripErr } = await c.from("trips").upsert({
           id: trip.id,
-          owner_id: currentUser.id,
+          owner_id: u.id,
           dest: trip.dest,
           country: trip.country || "",
           start_date: trip.start,
@@ -184,7 +191,7 @@ const Supa = (function () {
 
         await c.from("trip_participants").upsert({
           trip_id: trip.id,
-          user_id: currentUser.id,
+          user_id: u.id,
           role: "owner"
         });
 
@@ -194,7 +201,7 @@ const Supa = (function () {
             const poiUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(p.id || "") ? p.id : null;
             const poiRow = {
               trip_id: trip.id,
-              created_by: currentUser.id,
+              created_by: u.id,
               name: p.name,
               addr: p.addr || "",
               maps_url: p.mapsUrl || "",
@@ -213,7 +220,7 @@ const Supa = (function () {
             const ctUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ct.id || "") ? ct.id : null;
             const ctRow = {
               trip_id: trip.id,
-              created_by: currentUser.id,
+              created_by: u.id,
               kind: ct.kind || "struttura",
               name: ct.name,
               phone: ct.phone || "",
@@ -238,20 +245,35 @@ const Supa = (function () {
 
     async getUserTrips() {
       const c = this.getClient();
-      if (!c || !currentUser) return [];
+      if (!c) return [];
+      let u = currentUser;
+      if (!u && c.auth) {
+        try { const { data } = await c.auth.getUser(); u = data ? data.user : null; } catch (e) {}
+      }
+      if (!u) return [];
 
       try {
-        const { data, error } = await c
+        const { data: ownerTrips, error: ownerErr } = await c
+          .from("trips")
+          .select("*")
+          .eq("owner_id", u.id);
+
+        if (!ownerErr && ownerTrips && ownerTrips.length) {
+          return ownerTrips;
+        }
+
+        const { data: partData, error: partErr } = await c
           .from("trip_participants")
           .select("trip_id, role, trips(*)")
-          .eq("user_id", currentUser.id);
+          .eq("user_id", u.id);
 
-        if (error) throw error;
-        return (data || []).map(row => row.trips).filter(Boolean);
+        if (!partErr && partData && partData.length) {
+          return partData.map(row => row.trips).filter(Boolean);
+        }
       } catch (err) {
         console.warn("GetUserTrips error:", err);
-        return [];
       }
+      return [];
     },
 
     async loadTripSubData(tripId) {
