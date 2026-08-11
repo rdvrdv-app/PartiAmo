@@ -8,9 +8,12 @@ const Supa = (function () {
   const STORAGE_URL_KEY = "partiamo_supa_url";
   const STORAGE_ANON_KEY = "partiamo_supa_key";
 
+  const DEFAULT_SUPABASE_URL = "https://jobclfopbomkuabnbjgr.supabase.co";
+  const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvYmNsZm9wYm9ta3VhYm5iamdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTk1NjAsImV4cCI6MjEwMjAzNTU2MH0.bv83dh3lqczNPqp6MzUEfGb3QiuBzB-F-2odumqaEEM";
+
   function getSavedCredentials() {
-    const url = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_URL_KEY)) || (typeof window !== "undefined" && window.SUPABASE_URL) || "";
-    const key = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_ANON_KEY)) || (typeof window !== "undefined" && window.SUPABASE_ANON_KEY) || "";
+    const url = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_URL_KEY)) || (typeof window !== "undefined" && window.SUPABASE_URL) || DEFAULT_SUPABASE_URL;
+    const key = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_ANON_KEY)) || (typeof window !== "undefined" && window.SUPABASE_ANON_KEY) || DEFAULT_SUPABASE_ANON_KEY;
     return { url, key };
   }
 
