@@ -57,11 +57,36 @@ const UI = {
   /* ---------------- auth & sharing ---------------- */
   async initAuth() {
     this.bindAuth();
+    this.checkHashError();
     if (window.Supa) {
       const user = await Supa.init();
       this.onAuthChanged(user);
     }
     this.checkJoinUrl();
+  },
+
+  checkHashError() {
+    if (!window.location.hash) return;
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const errorCode = params.get("error_code");
+    const errorDesc = params.get("error_description");
+    
+    if (errorCode || errorDesc) {
+      let msg = "Impossibile accedere";
+      if (errorCode === "otp_expired" || (errorDesc && errorDesc.includes("expired"))) {
+        msg = "Il link di accesso via email è scaduto o è già stato utilizzato. Richiedine uno nuovo.";
+      } else if (errorDesc) {
+        msg = errorDesc.replace(/\+/g, " ");
+      }
+      
+      this.toast("⚠️ " + msg);
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      
+      setTimeout(() => {
+        const modal = $("#modal-auth");
+        if (modal && typeof modal.showModal === "function") modal.showModal();
+      }, 500);
+    }
   },
 
   bindAuth() {
