@@ -204,6 +204,18 @@ const UI = {
             Store.s.trip.airline = cloudTrip.airline || "nessuna";
             Store.s.trip.fare = cloudTrip.fare || "nessuna";
             Store.s.trip.inviteCode = cloudTrip.invite_code;
+            const sub = await Supa.loadTripSubData(cloudTrip.id);
+            if (sub.pois && sub.pois.length) {
+              Store.s.pois = sub.pois.map(p => ({
+                id: p.id, name: p.name, addr: p.addr, mapsUrl: p.maps_url, cat: p.cat, day: p.day, notes: p.notes, files: p.files || []
+              }));
+            }
+            if (sub.contacts && sub.contacts.length) {
+              Store.s.contacts = sub.contacts.map(c => ({
+                id: c.id, kind: c.kind, name: c.name, phone: c.phone, email: c.email, addr: c.addr, cin: c.cin, cout: c.cout, ref: c.ref, notes: c.notes, files: c.files || []
+              }));
+            }
+
             Store.save();
             this.loadTripForm();
             await this.refreshWeather(true);

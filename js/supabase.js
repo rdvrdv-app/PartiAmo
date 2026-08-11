@@ -152,8 +152,14 @@ const Supa = (function () {
       if (!c || !currentUser || !trip || !trip.dest) return null;
 
       try {
-        if (!trip.id || typeof trip.id !== "string" || trip.id.length < 10) {
-          trip.id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Store.uid();
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trip.id || "");
+        if (!isValidUUID) {
+          trip.id = (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") ?
+                    crypto.randomUUID() :
+                    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+                      const r = Math.random() * 16 | 0;
+                      return (char === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                    });
         }
         if (!trip.inviteCode) {
           const cleanDest = trip.dest.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 6);
@@ -174,7 +180,7 @@ const Supa = (function () {
           invite_code: trip.inviteCode
         }).select();
 
-        if (tripErr) console.warn("Supabase saveTrip error:", tripErr);
+        if (tripErr) console.error("Supabase saveTrip error:", tripErr);
 
         await c.from("trip_participants").upsert({
           trip_id: trip.id,
@@ -182,9 +188,50 @@ const Supa = (function () {
           role: "owner"
         });
 
+        // Sync POIs to Supabase
+        if (Store.s.pois && Store.s.pois.length) {
+          for (const p of Store.s.pois) {
+            const poiUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(p.id || "") ? p.id : null;
+            const poiRow = {
+              trip_id: trip.id,
+              created_by: currentUser.id,
+              name: p.name,
+              addr: p.addr || "",
+              maps_url: p.mapsUrl || "",
+              cat: p.cat || "visita",
+              day: p.day || null,
+              notes: p.notes || ""
+            };
+            if (poiUuid) poiRow.id = poiUuid;
+            await c.from("pois").upsert(poiRow);
+          }
+        }
+
+        // Sync Contacts to Supabase
+        if (Store.s.contacts && Store.s.contacts.length) {
+          for (const ct of Store.s.contacts) {
+            const ctUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ct.id || "") ? ct.id : null;
+            const ctRow = {
+              trip_id: trip.id,
+              created_by: currentUser.id,
+              kind: ct.kind || "struttura",
+              name: ct.name,
+              phone: ct.phone || "",
+              email: ct.email || "",
+              addr: ct.addr || "",
+              cin: ct.cin || "",
+              cout: ct.cout || "",
+              ref: ct.ref || "",
+              notes: ct.notes || ""
+            };
+            if (ctUuid) ctRow.id = ctUuid;
+            await c.from("contacts").upsert(ctRow);
+          }
+        }
+
         return trip;
       } catch (err) {
-        console.warn("Save trip to Supabase error:", err);
+        console.error("Save trip to Supabase error:", err);
       }
       return null;
     },
@@ -204,6 +251,20 @@ const Supa = (function () {
       } catch (err) {
         console.warn("GetUserTrips error:", err);
         return [];
+      }
+    },
+
+    async loadTripSubData(tripId) {
+      const c = this.getClient();
+      if (!c || !tripId) return { pois: [], contacts: [] };
+
+      try {
+        const { data: pois } = await c.from("pois").select("*").eq("trip_id", tripId);
+        const { data: contacts } = await c.from("contacts").select("*").eq("trip_id", tripId);
+        return { pois: pois || [], contacts: contacts || [] };
+      } catch (err) {
+        console.warn("loadTripSubData error:", err);
+        return { pois: [], contacts: [] };
       }
     }
   };
