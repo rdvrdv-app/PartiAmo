@@ -269,10 +269,21 @@ const UI = {
     const al = $("#tp-airline");
     al.innerHTML = Object.entries(DATA.airlines).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
     al.addEventListener("change", () => this.fillFares());
-    // Nessun volo → nessuna compagnia da indicare.
+    // Nessun volo → nessuna compagnia da indicare. Auto → rimuove colli predefiniti.
     $("#tp-transport").addEventListener("change", e => {
-      if (e.target.value !== "aereo") { al.value = "nessuna"; this.fillFares(); }
+      const val = e.target.value;
+      if (val !== "aereo") { al.value = "nessuna"; this.fillFares(); }
       else if (al.value === "nessuna") { al.selectedIndex = 1; this.fillFares(); }
+
+      if (val === "auto") {
+        Store.s.bags = [];
+        Store.s.trip.luggages = [];
+        Store.save();
+        this.renderTripLuggages();
+        this.renderBaggage();
+        this.renderChecklist();
+        this.toast("Mezzo Auto selezionato: colli di default rimossi");
+      }
     });
     $("#countries").innerHTML = Object.keys(DATA.countries)
       .map(c => `<option value="${esc(c.replace(/\b\w/g, m => m.toUpperCase()))}">`).join("");
@@ -389,6 +400,7 @@ const UI = {
       t.airline = $("#tp-airline").value; t.fare = $("#tp-fare").value;
       t.travelers = +$("#tp-travelers").value || 1;
       t.laundry = $("#tp-laundry").value;
+      if (t.transport === "auto" && (!Store.s.bags || !Store.s.bags.length)) { t.luggages = []; }
       if (t.end < t.start) { this.toast("La data di rientro precede la partenza"); return; }
       Store.save();
       await this.refreshWeather(true);
