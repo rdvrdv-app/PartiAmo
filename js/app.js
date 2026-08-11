@@ -93,7 +93,11 @@ const UI = {
           statusEl.textContent = "✅ Link di accesso inviato! Controlla la tua email per accedere con 1-click.";
         } catch (err) {
           statusEl.className = "note warn";
-          statusEl.textContent = "⚠️ Errore: " + err.message;
+          let msg = err.message || "Impossibile inviare l'email";
+          if (/rate\s?limit/i.test(msg)) {
+            msg = "Hai richiesto troppi link in poco tempo per sicurezza. Attendi 1-2 minuti oppure controlla la tua casella email (le mail già inviate sono valide!).";
+          }
+          statusEl.textContent = "⚠️ " + msg;
         }
       });
     }
