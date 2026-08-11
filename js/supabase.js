@@ -145,6 +145,66 @@ const Supa = (function () {
         console.warn("Get participants error:", err);
         return [];
       }
+    },
+
+    async saveTrip(trip) {
+      const c = this.getClient();
+      if (!c || !currentUser || !trip || !trip.dest) return null;
+
+      try {
+        if (!trip.id || typeof trip.id !== "string" || trip.id.length < 10) {
+          trip.id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Store.uid();
+        }
+        if (!trip.inviteCode) {
+          const cleanDest = trip.dest.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 6);
+          const randNum = Math.floor(1000 + Math.random() * 9000);
+          trip.inviteCode = `${cleanDest || "TRIP"}-${randNum}`;
+        }
+
+        const { data: tripData, error: tripErr } = await c.from("trips").upsert({
+          id: trip.id,
+          owner_id: currentUser.id,
+          dest: trip.dest,
+          country: trip.country || "",
+          start_date: trip.start,
+          end_date: trip.end,
+          transport: trip.transport || "aereo",
+          airline: trip.airline || "nessuna",
+          fare: trip.fare || "nessuna",
+          invite_code: trip.inviteCode
+        }).select();
+
+        if (tripErr) console.warn("Supabase saveTrip error:", tripErr);
+
+        await c.from("trip_participants").upsert({
+          trip_id: trip.id,
+          user_id: currentUser.id,
+          role: "owner"
+        });
+
+        return trip;
+      } catch (err) {
+        console.warn("Save trip to Supabase error:", err);
+      }
+      return null;
+    },
+
+    async getUserTrips() {
+      const c = this.getClient();
+      if (!c || !currentUser) return [];
+
+      try {
+        const { data, error } = await c
+          .from("trip_participants")
+          .select("trip_id, role, trips(*)")
+          .eq("user_id", currentUser.id);
+
+        if (error) throw error;
+        return (data || []).map(row => row.trips).filter(Boolean);
+      } catch (err) {
+        console.warn("GetUserTrips error:", err);
+        return [];
+      }
     }
   };
 })();

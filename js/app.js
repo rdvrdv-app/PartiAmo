@@ -173,7 +173,7 @@ const UI = {
     }
   },
 
-  onAuthChanged(user) {
+  async onAuthChanged(user) {
     const btnAuth = $("#btn-auth");
     const unloggedBox = $("#auth-unlogged");
     const loggedBox = $("#auth-logged");
@@ -187,6 +187,32 @@ const UI = {
       const emailEl = $("#user-display-email");
       if (nameEl) nameEl.textContent = (user.user_metadata && user.user_metadata.full_name) || user.email.split("@")[0];
       if (emailEl) emailEl.textContent = user.email;
+
+      if (window.Supa) {
+        if (Store.s.trip && Store.s.trip.dest) {
+          await Supa.saveTrip(Store.s.trip);
+        } else {
+          const userTrips = await Supa.getUserTrips();
+          if (userTrips && userTrips.length) {
+            const cloudTrip = userTrips[0];
+            Store.s.trip.id = cloudTrip.id;
+            Store.s.trip.dest = cloudTrip.dest;
+            Store.s.trip.country = cloudTrip.country || "";
+            Store.s.trip.start = cloudTrip.start_date;
+            Store.s.trip.end = cloudTrip.end_date;
+            Store.s.trip.transport = cloudTrip.transport || "aereo";
+            Store.s.trip.airline = cloudTrip.airline || "nessuna";
+            Store.s.trip.fare = cloudTrip.fare || "nessuna";
+            Store.s.trip.inviteCode = cloudTrip.invite_code;
+            Store.save();
+            this.loadTripForm();
+            await this.refreshWeather(true);
+            Checklist.refresh();
+            this.renderAll();
+            this.toast(`🎉 Viaggio per ${cloudTrip.dest} ripristinato dal cloud!`);
+          }
+        }
+      }
     } else {
       if (btnAuth) btnAuth.textContent = "🔑 Accedi";
       if (unloggedBox) unloggedBox.classList.remove("hidden");
@@ -432,6 +458,9 @@ const UI = {
       if (t.transport === "auto" && (!Store.s.bags || !Store.s.bags.length)) { t.luggages = []; }
       if (t.end < t.start) { this.toast("La data di rientro precede la partenza"); return; }
       Store.save();
+      if (window.Supa && Supa.getUser()) {
+        await Supa.saveTrip(t);
+      }
       await this.refreshWeather(true);
       Checklist.refresh();
       this.renderAll();
