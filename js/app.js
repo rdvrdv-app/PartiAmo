@@ -115,7 +115,7 @@ const UI = {
           statusEl.textContent = "⏳ Invio codice in corso…";
           await Supa.signInMagicLink(email);
           statusEl.className = "note ok";
-          statusEl.textContent = "✅ Codice a 6 cifre inviato! Inseriscilo qui sotto per accedere:";
+          statusEl.textContent = "✅ Email inviata! Clicca direttamente sul link nell'email per accedere in 1-click (oppure inserisci il codice a 6 cifre sotto):";
           const otpForm = $("#form-otp-verify");
           if (otpForm) {
             otpForm.classList.remove("hidden");

@@ -368,13 +368,13 @@
       <p class="note" style="margin:0; font-size:13px">Accedi per salvare i tuoi viaggi, sincronizzarli tra dispositivi ed invitare i tuoi compagni di viaggio.</p>
       
       <form id="form-magic-link" class="auth-magic-box">
-        <label style="font-size:12px; font-weight:600; color:var(--muted)">Inserisci la tua email per ricevere il codice di accesso</label>
+        <label style="font-size:12px; font-weight:600; color:var(--muted)">Inserisci la tua email per accedere senza password</label>
         <input type="email" id="auth-email" placeholder="La tua email (es. mario@gmail.com)" required aria-label="Email">
-        <button type="submit" class="auth-magic-btn">✉️ Invia Codice a 6 cifre</button>
+        <button type="submit" class="auth-magic-btn">✉️ Invia Email di Accesso</button>
       </form>
       
       <form id="form-otp-verify" class="auth-magic-box hidden" style="margin-top:8px">
-        <label style="font-size:12px; font-weight:600; color:var(--accent)">Inserisci il Codice a 6 cifre ricevuto via email:</label>
+        <label style="font-size:12px; font-weight:600; color:var(--accent)">Inserisci il Codice a 6 cifre (se presente nella mail):</label>
         <div class="row wrap gap-8" style="display:flex; gap:8px">
           <input type="text" id="auth-otp-code" placeholder="123456" maxlength="8" style="font-size:18px; font-weight:700; letter-spacing:4px; text-align:center; flex:1 1 140px">
           <button type="submit" class="primary small" style="flex:0 0 auto; padding:10px 18px">🔑 Accedi</button>
