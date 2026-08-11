@@ -112,17 +112,21 @@ const UI = {
         if (!email) return;
         try {
           statusEl.className = "note info";
-          statusEl.textContent = "⏳ Invio link e codice in corso…";
+          statusEl.textContent = "⏳ Invio codice in corso…";
           await Supa.signInMagicLink(email);
           statusEl.className = "note ok";
-          statusEl.textContent = "✅ Email inviata! Clicca sul link oppure inserisci il codice OTP a 6 cifre presente nella mail qui sotto.";
+          statusEl.textContent = "✅ Codice a 6 cifre inviato! Inseriscilo qui sotto per accedere:";
           const otpForm = $("#form-otp-verify");
-          if (otpForm) otpForm.classList.remove("hidden");
+          if (otpForm) {
+            otpForm.classList.remove("hidden");
+            const codeInput = $("#auth-otp-code");
+            if (codeInput) { codeInput.focus(); }
+          }
         } catch (err) {
           statusEl.className = "note warn";
           let msg = err.message || "Impossibile inviare l'email";
           if (/rate\s?limit/i.test(msg)) {
-            msg = "Hai richiesto troppi link in poco tempo per sicurezza. Attendi 1-2 minuti oppure controlla la tua casella email (le mail già inviate sono valide!).";
+            msg = "Hai richiesto troppi codici in poco tempo per sicurezza. Attendi 1-2 minuti oppure controlla la tua casella email.";
           }
           statusEl.textContent = "⚠️ " + msg;
         }
