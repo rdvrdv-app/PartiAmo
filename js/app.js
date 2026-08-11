@@ -112,10 +112,12 @@ const UI = {
         if (!email) return;
         try {
           statusEl.className = "note info";
-          statusEl.textContent = "⏳ Invio link in corso…";
+          statusEl.textContent = "⏳ Invio link e codice in corso…";
           await Supa.signInMagicLink(email);
           statusEl.className = "note ok";
-          statusEl.textContent = "✅ Link di accesso inviato! Controlla la tua email per accedere con 1-click.";
+          statusEl.textContent = "✅ Email inviata! Clicca sul link oppure inserisci il codice OTP a 6 cifre presente nella mail qui sotto.";
+          const otpForm = $("#form-otp-verify");
+          if (otpForm) otpForm.classList.remove("hidden");
         } catch (err) {
           statusEl.className = "note warn";
           let msg = err.message || "Impossibile inviare l'email";
@@ -123,6 +125,31 @@ const UI = {
             msg = "Hai richiesto troppi link in poco tempo per sicurezza. Attendi 1-2 minuti oppure controlla la tua casella email (le mail già inviate sono valide!).";
           }
           statusEl.textContent = "⚠️ " + msg;
+        }
+      });
+    }
+
+    const formOtp = $("#form-otp-verify");
+    if (formOtp) {
+      formOtp.addEventListener("submit", async e => {
+        e.preventDefault();
+        const email = $("#auth-email").value.trim();
+        const code = $("#auth-otp-code").value.trim();
+        const statusEl = $("#auth-status");
+        if (!email || !code) return;
+        try {
+          statusEl.className = "note info";
+          statusEl.textContent = "⏳ Verifica codice in corso…";
+          await Supa.verifyOtp(email, code);
+          statusEl.className = "note ok";
+          statusEl.textContent = "🎉 Codice verificato! Accesso effettuato con successo.";
+          setTimeout(() => {
+            const modal = $("#modal-auth");
+            if (modal && typeof modal.close === "function") modal.close();
+          }, 800);
+        } catch (err) {
+          statusEl.className = "note warn";
+          statusEl.textContent = "⚠️ Codice non valido o scaduto. Verifica le 6 cifre nella mail.";
         }
       });
     }

@@ -88,6 +88,18 @@ const Supa = (function () {
       return data;
     },
 
+    async verifyOtp(email, token) {
+      const c = this.getClient();
+      if (!c) throw new Error("Supabase non configurato");
+      const { data, error } = await c.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: "email"
+      });
+      if (error) throw error;
+      return data;
+    },
+
     async signInGoogle() {
       const c = this.getClient();
       if (!c) throw new Error("Supabase non configurato");
