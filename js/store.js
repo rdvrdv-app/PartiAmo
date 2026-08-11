@@ -44,11 +44,18 @@ const Store = (function () {
     return state;
   }
 
+  let saveTimer = null;
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
+      if (window.Supa && typeof Supa.getUser === "function" && Supa.getUser() && state.trip && state.trip.dest) {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          Supa.saveTrip(state.trip);
+        }, 1000);
+      }
     } catch (e) {
-      UI && UI.toast("Spazio esaurito: rimuovi qualche allegato");
+      if (typeof UI !== "undefined" && UI && UI.toast) UI.toast("Spazio esaurito: rimuovi qualche allegato");
     }
   }
 
