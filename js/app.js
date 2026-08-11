@@ -623,6 +623,7 @@ const UI = {
       if (f.flight) {
         items.push({
           date: f.dateMain || t.start,
+          rawName: f.flight,
           html: `✈️ Volo <b>${esc(f.flight)}</b>${f.from ? ` ${esc(f.from)}→${esc(f.to || "")}` : ""}${f.dateMain ? " il " + itDate(f.dateMain) : ""}${f.timeDep ? " alle " + esc(f.timeDep) : ""}${f.gate ? " · gate " + esc(f.gate) : ""}${f.seat ? " · posto " + esc(f.seat) : ""}`,
           tab: "vault",
           targetId: d.id
@@ -631,6 +632,7 @@ const UI = {
       if (f.checkin) {
         items.push({
           date: f.checkin || t.start,
+          rawName: f.property || d.title || "struttura",
           html: `🏨 Check-in ${esc(f.property || d.title || "struttura")} il ${itDate(f.checkin)}`,
           tab: "vault",
           targetId: d.id
@@ -643,6 +645,7 @@ const UI = {
       if (c.cin) {
         items.push({
           date: c.cin || t.start,
+          rawName: c.name,
           html: `🏨 ${esc(c.name)} · Check-in ${esc(c.cin)}`,
           tab: "contatti",
           targetId: c.id
@@ -656,6 +659,7 @@ const UI = {
         const catIcon = { visita: "🏛️", cibo: "🍽️", trasporto: "🚌", shopping: "🛍️", altro: "📍" }[p.cat] || "📍";
         items.push({
           date: p.day,
+          rawName: p.name,
           html: `${catIcon} ${itDate(p.day)} · ${esc(p.name)}${p.addr ? " (" + esc(p.addr) + ")" : ""}`,
           tab: "itinerario",
           day: p.day,
@@ -671,6 +675,7 @@ const UI = {
         (s.itinerary[day][k] || []).slice(0, 2).forEach(a => {
           items.push({
             date: day,
+            rawName: a.text,
             html: `🗓️ ${itDate(day)} · ${lbl}: ${esc(a.text)}`,
             tab: "itinerario",
             day: day
@@ -682,8 +687,40 @@ const UI = {
     // Sort commitments chronologically by date
     items.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
-    if (items.length) {
-      $("#d-next").innerHTML = `<ul class="next-commitments-list">${items.slice(0, 8).map(i => `
+    // Deduplicate items on the same date with matching names/keywords
+    const uniqueItems = [];
+    const seenKeys = new Set();
+
+    items.forEach(item => {
+      const cleanName = (item.rawName || "")
+        .toLowerCase()
+        .replace(/[^\w\sà-ù]/gi, "")
+        .trim();
+
+      if (!cleanName) {
+        uniqueItems.push(item);
+        return;
+      }
+
+      let isDuplicate = false;
+      for (const existingKey of seenKeys) {
+        const [exDate, exName] = existingKey.split(":::");
+        if (exDate === item.date && exName && cleanName) {
+          if (exName === cleanName || exName.includes(cleanName) || cleanName.includes(exName)) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+
+      if (!isDuplicate) {
+        seenKeys.add(`${item.date}:::${cleanName}`);
+        uniqueItems.push(item);
+      }
+    });
+
+    if (uniqueItems.length) {
+      $("#d-next").innerHTML = `<ul class="next-commitments-list">${uniqueItems.slice(0, 8).map(i => `
         <li class="next-item" data-tab="${i.tab}" ${i.targetId ? `data-target-id="${i.targetId}"` : ""} ${i.day ? `data-day="${i.day}"` : ""}>
           <span>${i.html}</span> <span class="arr">→</span>
         </li>`).join("")}</ul>`;
