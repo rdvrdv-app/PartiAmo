@@ -701,12 +701,12 @@ const UI = {
     Object.keys(s.itinerary).sort().forEach(day => {
       if (day < t.start) return;
       SLOTS.forEach(([k, lbl]) => {
-        (s.itinerary[day][k] || []).slice(0, 3).forEach(a => {
+        (s.itinerary[day][k] || []).slice(0, 5).forEach(a => {
           items.push({
             date: day,
             time: a.time || "",
             rawName: a.text,
-            html: `🗓️ ${itDate(day)}${a.time ? ` <b>${esc(a.time)}</b>` : ""} · ${lbl}: ${esc(a.text)}`,
+            html: `🗓️ ${itDate(day)}${a.time ? ` <span class="badge" style="font-size:11.5px; background:var(--accent-soft); color:var(--accent); font-weight:700">⏰ ${esc(a.time)}</span>` : ""} · ${lbl}: ${esc(a.text)}`,
             tab: "itinerario",
             day: day
           });
@@ -715,11 +715,14 @@ const UI = {
     });
 
     // Sort commitments chronologically by date and time
-    items.sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
+    items.sort((a, b) => {
+      const dateCmp = (a.date || "").localeCompare(b.date || "");
+      if (dateCmp !== 0) return dateCmp;
+      return (a.time || "99:99").localeCompare(b.time || "99:99");
+    });
 
     // Deduplicate items on the same date with matching names/keywords
-    const uniqueItems = [];
-    const seenKeys = new Set();
+    const uniqueMap = new Map();
 
     items.forEach(item => {
       const cleanName = (item.rawName || "")
@@ -728,26 +731,33 @@ const UI = {
         .trim();
 
       if (!cleanName) {
-        uniqueItems.push(item);
+        uniqueMap.set(Math.random(), item);
         return;
       }
 
-      let isDuplicate = false;
-      for (const existingKey of seenKeys) {
-        const [exDate, exName] = existingKey.split(":::");
+      let existingKey = null;
+      for (const [k, existingItem] of uniqueMap.entries()) {
+        const [exDate, exName] = String(k).split(":::");
         if (exDate === item.date && exName && cleanName) {
           if (exName === cleanName || exName.includes(cleanName) || cleanName.includes(exName)) {
-            isDuplicate = true;
+            existingKey = k;
             break;
           }
         }
       }
 
-      if (!isDuplicate) {
-        seenKeys.add(`${item.date}:::${cleanName}`);
-        uniqueItems.push(item);
+      if (existingKey) {
+        const existingItem = uniqueMap.get(existingKey);
+        // Prefer the item that HAS an explicit time badge
+        if (item.time && !existingItem.time) {
+          uniqueMap.set(existingKey, item);
+        }
+      } else {
+        uniqueMap.set(`${item.date}:::${cleanName}`, item);
       }
     });
+
+    const uniqueItems = Array.from(uniqueMap.values());
 
     if (uniqueItems.length) {
       $("#d-next").innerHTML = `<ul class="next-commitments-list">${uniqueItems.slice(0, 8).map(i => `
@@ -1672,18 +1682,22 @@ const UI = {
         </summary>
         <div style="padding:12px 14px">
           ${wPanel}
-          ${activeSlots.length ? activeSlots.map(([k, lbl]) => `
+          ${activeSlots.length ? activeSlots.map(([k, lbl]) => {
+            const sortedActs = (day[k] || []).map((a, idx) => ({ ...a, originalIdx: idx }));
+            sortedActs.sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+            return `
             <div class="slot" style="margin-bottom:10px">
               <h5 style="margin-bottom:6px">${SLOT_ICONS[k] || "📌"} ${lbl}</h5>
-              ${(day[k] || []).map((a, idx) => `
+              ${sortedActs.map(a => `
                 <div class="act">
                   ${a.time ? `<span class="badge" style="font-size:11.5px; background:var(--accent-soft); color:var(--accent); font-weight:700; flex:0 0 auto">⏰ ${esc(a.time)}</span>` : ""}
                   <span class="t">${esc(a.text)}</span>
                   ${a.place ? `<a class="map" href="${mapsUrl(a.place + " " + (t.dest || ""))}" target="_blank" rel="noopener">🗺️ ${esc(a.place)}</a>` : ""}
-                  <button class="x" data-edit-act="${iso}|${k}|${idx}" title="Modifica attività">✏️</button>
-                  <button class="x" data-del-act="${iso}|${k}|${idx}" title="Elimina attività">✕</button>
+                  <button class="x" data-edit-act="${iso}|${k}|${a.originalIdx}" title="Modifica attività">✏️</button>
+                  <button class="x" data-del-act="${iso}|${k}|${a.originalIdx}" title="Elimina attività">✕</button>
                 </div>`).join("")}
-            </div>`).join("") : `<p class="note" style="margin-bottom:10px">Nessuna attività ancora in programma per questo giorno.</p>`}
+            </div>`;
+          }).join("") : `<p class="note" style="margin-bottom:10px">Nessuna attività ancora in programma per questo giorno.</p>`}
 
           <form data-add-day-act="${iso}" class="col" style="gap:8px; background:var(--surface-2); padding:10px; border-radius:12px; border:1px solid var(--border)">
             <h5 style="margin:0; font-size:12px; text-transform:uppercase; color:var(--muted)">➕ Aggiungi / Modifica attività</h5>
