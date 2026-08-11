@@ -1651,12 +1651,13 @@ const UI = {
                   ${a.time ? `<span class="badge" style="font-size:11.5px; background:var(--accent-soft); color:var(--accent); font-weight:700; flex:0 0 auto">⏰ ${esc(a.time)}</span>` : ""}
                   <span class="t">${esc(a.text)}</span>
                   ${a.place ? `<a class="map" href="${mapsUrl(a.place + " " + (t.dest || ""))}" target="_blank" rel="noopener">🗺️ ${esc(a.place)}</a>` : ""}
+                  <button class="x" data-edit-act="${iso}|${k}|${idx}" title="Modifica attività">✏️</button>
                   <button class="x" data-del-act="${iso}|${k}|${idx}" title="Elimina attività">✕</button>
                 </div>`).join("")}
             </div>`).join("") : `<p class="note" style="margin-bottom:10px">Nessuna attività ancora in programma per questo giorno.</p>`}
 
           <form data-add-day-act="${iso}" class="col" style="gap:8px; background:var(--surface-2); padding:10px; border-radius:12px; border:1px solid var(--border)">
-            <h5 style="margin:0; font-size:12px; text-transform:uppercase; color:var(--muted)">➕ Aggiungi attività</h5>
+            <h5 style="margin:0; font-size:12px; text-transform:uppercase; color:var(--muted)">➕ Aggiungi / Modifica attività</h5>
             ${(s.pois && s.pois.length) ? `
               <select class="itin-poi-select" aria-label="Seleziona dai POI salvati" style="font-size:13px">
                 <option value="">📍 Scegli dai POI salvati...</option>
@@ -1692,18 +1693,72 @@ const UI = {
       const slot = form.querySelector(".itin-slot-select").value;
       if (!raw) return;
       const [text, place] = raw.split("@").map(x => x.trim());
+      const actObj = { text: text || raw, place: place || "", time: time || "" };
+
       s.itinerary[iso] = s.itinerary[iso] || {};
-      s.itinerary[iso][slot] = s.itinerary[iso][slot] || [];
-      s.itinerary[iso][slot].push({ text: text || raw, place: place || "", time: time || "" });
+
+      const editSlot = form.dataset.editSlot;
+      const editIdx = form.dataset.editIdx;
+
+      if (editSlot !== undefined && editIdx !== undefined) {
+        const oldIdx = +editIdx;
+        if (editSlot === slot) {
+          s.itinerary[iso][slot][oldIdx] = actObj;
+        } else {
+          if (s.itinerary[iso][editSlot]) {
+            s.itinerary[iso][editSlot].splice(oldIdx, 1);
+          }
+          s.itinerary[iso][slot] = s.itinerary[iso][slot] || [];
+          s.itinerary[iso][slot].push(actObj);
+        }
+        delete form.dataset.editSlot;
+        delete form.dataset.editIdx;
+        this.toast("Attività aggiornata!");
+      } else {
+        s.itinerary[iso][slot] = s.itinerary[iso][slot] || [];
+        s.itinerary[iso][slot].push(actObj);
+        this.toast("Attività aggiunta!");
+      }
+
       Store.save(); this.renderItinerary(); this.renderDashboard();
     };
 
     box.onclick = e => {
-      const b = e.target.closest("[data-del-act]"); if (!b) return;
-      const [iso, slot, idx] = b.dataset.delAct.split("|");
-      if (s.itinerary[iso] && s.itinerary[iso][slot]) {
-        s.itinerary[iso][slot].splice(+idx, 1);
-        Store.save(); this.renderItinerary(); this.renderDashboard();
+      const editBtn = e.target.closest("[data-edit-act]");
+      if (editBtn) {
+        const [iso, slot, idxStr] = editBtn.dataset.editAct.split("|");
+        const idx = +idxStr;
+        if (s.itinerary[iso] && s.itinerary[iso][slot] && s.itinerary[iso][slot][idx]) {
+          const act = s.itinerary[iso][slot][idx];
+          const form = document.querySelector(`form[data-add-day-act="${iso}"]`);
+          if (form) {
+            form.dataset.editSlot = slot;
+            form.dataset.editIdx = idx;
+            const timeIn = form.querySelector(".itin-time-input");
+            const textIn = form.querySelector(".itin-text-input");
+            const slotSel = form.querySelector(".itin-slot-select");
+            const submitBtn = form.querySelector("button");
+
+            if (timeIn) timeIn.value = act.time || "";
+            if (textIn) textIn.value = act.text + (act.place ? " @ " + act.place : "");
+            if (slotSel) slotSel.value = slot;
+            if (submitBtn) submitBtn.textContent = "💾 Salva";
+
+            form.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (textIn) textIn.focus();
+            this.toast(`Modifica "${act.text}"`);
+          }
+        }
+        return;
+      }
+
+      const delBtn = e.target.closest("[data-del-act]");
+      if (delBtn) {
+        const [iso, slot, idx] = delBtn.dataset.delAct.split("|");
+        if (s.itinerary[iso] && s.itinerary[iso][slot]) {
+          s.itinerary[iso][slot].splice(+idx, 1);
+          Store.save(); this.renderItinerary(); this.renderDashboard();
+        }
       }
     };
   }
