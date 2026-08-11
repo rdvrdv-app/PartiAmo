@@ -303,7 +303,7 @@ const UI = {
     $("#tp-start").value = t.start; $("#tp-end").value = t.end;
     $("#tp-type").value = t.type; $("#tp-transport").value = t.transport;
     $("#tp-airline").value = t.airline; this.fillFares(t.fare);
-    $("#tp-travelers").value = t.travelers;
+    if ($("#tp-travelers")) $("#tp-travelers").value = t.travelers || 1;
     $("#tp-laundry").value = t.laundry;
     this.renderTripLuggages();
   },
@@ -402,7 +402,7 @@ const UI = {
       t.start = $("#tp-start").value; t.end = $("#tp-end").value;
       t.type = $("#tp-type").value; t.transport = $("#tp-transport").value;
       t.airline = $("#tp-airline").value; t.fare = $("#tp-fare").value;
-      t.travelers = +$("#tp-travelers").value || 1;
+      t.travelers = 1;
       t.laundry = $("#tp-laundry").value;
       if (t.transport === "auto" && (!Store.s.bags || !Store.s.bags.length)) { t.luggages = []; }
       if (t.end < t.start) { this.toast("La data di rientro precede la partenza"); return; }
@@ -543,7 +543,7 @@ const UI = {
     const counts = { zaino: 0, trolley: 0, stiva: 0 };
     luggages.forEach(b => { const type = b.type || b; counts[type] = (counts[type] || 0) + 1; });
     const luggageStr = Object.entries(counts).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${k}`).join(" + ") || "1 zaino";
-    const chips = [t.type, t.transport, luggageStr, `${t.travelers} viaggiator${t.travelers === 1 ? "e" : "i"}`];
+    const chips = [t.type, t.transport, luggageStr];
     if (t.transport === "aereo" && t.airline !== "nessuna") chips.push(DATA.airlines[t.airline].label);
     $("#d-chips").innerHTML = chips.map(c => `<span class="chip">${esc(c)}</span>`).join("");
 
