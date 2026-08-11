@@ -1184,6 +1184,26 @@ const UI = {
     $("#ct-kind").addEventListener("change", () => this.applyContactKind());
     this.applyContactKind();
 
+    $("#ct-maps-url").addEventListener("input", async e => {
+      const url = e.target.value.trim();
+      if (!url) return;
+
+      const parsed = await this.resolveGoogleMapsUrl(url);
+
+      if (parsed) {
+        if (parsed.name) $("#ct-name").value = parsed.name;
+        if (parsed.addr !== undefined) $("#ct-addr").value = parsed.addr;
+        if (parsed.cat) {
+          const catToKind = { cibo: "ristorante", trasporto: "trasporto", visita: "altro", shopping: "altro", altro: "altro" };
+          if (catToKind[parsed.cat]) {
+            $("#ct-kind").value = catToKind[parsed.cat];
+            this.applyContactKind();
+          }
+        }
+        this.toast(`Compilato: ${parsed.name || "Dati da Google Maps"}`);
+      }
+    });
+
     $("#poi-maps-url").addEventListener("input", async e => {
       const url = e.target.value.trim();
       if (!url) return;
@@ -1204,7 +1224,7 @@ const UI = {
       const c = {
         id: Store.uid(), kind: $("#ct-kind").value, name: $("#ct-name").value.trim(),
         phone: $("#ct-phone").value.trim(), email: $("#ct-email").value.trim(),
-        addr: $("#ct-addr").value.trim(),
+        addr: $("#ct-addr").value.trim(), mapsUrl: $("#ct-maps-url").value.trim(),
         cin: cfg.times ? $("#ct-in").value.trim() : "",
         cout: cfg.times && cfg.timeOut ? $("#ct-out").value.trim() : "",
         ref: cfg.ref ? $("#ct-ref").value.trim() : "",
@@ -1321,6 +1341,7 @@ const UI = {
           form.dataset.editId = c.id;
           $("#ct-kind").value = c.kind || "altro";
           this.applyContactKind();
+          $("#ct-maps-url").value = c.mapsUrl || "";
           $("#ct-name").value = c.name || "";
           $("#ct-phone").value = c.phone || "";
           $("#ct-email").value = c.email || "";
@@ -1503,7 +1524,7 @@ const UI = {
           ${c.phone ? `<a href="tel:${esc(c.phone.replace(/\s/g, ""))}">📞 Chiama</a>
                        <a href="https://wa.me/${esc(c.phone.replace(/[^\d]/g, ""))}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
           ${c.email ? `<a href="mailto:${esc(c.email)}">✉️ Email</a>` : ""}
-          ${c.addr ? `<a href="${mapsUrl(c.addr + " " + dest)}" target="_blank" rel="noopener">🗺️ Mappa</a>` : ""}
+          ${(c.mapsUrl || c.addr) ? `<a href="${esc(c.mapsUrl || mapsUrl(c.addr + " " + dest))}" target="_blank" rel="noopener">🗺️ Mappa</a>` : ""}
           <button data-edit-contact="${c.id}">✏️ Modifica</button>
           <button data-del-contact="${c.id}">🗑</button>
         </div>
