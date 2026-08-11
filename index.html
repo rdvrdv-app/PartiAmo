@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>PartiAmo — Assistente di Viaggio</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">✈️ <span>Parti<b>Amo</b></span></div>
+  <div class="top-actions">
+    <span class="top-dest" id="top-dest"></span>
+    <button id="btn-share-trip" class="ghost small hidden" title="Condividi Viaggio">👥 Condividi</button>
+    <button id="btn-auth" class="ghost small" title="Account / Accedi">🔑 Accedi</button>
+    <button id="btn-theme" class="icon-btn" title="Tema chiaro/scuro" aria-label="Cambia tema">🌙</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="dashboard" class="active"><i>🏠</i><em>Dashboard</em></button>
+  <button data-tab="vault"><i>🔐</i><em>Vault</em></button>
+  <button data-tab="viaggio"><i>🧳</i><em>Viaggio</em></button>
+  <button data-tab="itinerario"><i>📍</i><em>Itinerario</em></button>
+  <button data-tab="contatti"><i>📇</i><em>Contatti</em></button>
+  <button data-tab="checklist"><i>✅</i><em>Checklist</em></button>
+</nav>
+
+<main>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="tab-dashboard" class="tab active">
+  <div id="dash-empty" class="empty hidden">
+    <h2>Nessun viaggio configurato</h2>
+    <p>Per generare checklist, meteo e franchigie bagaglio servono i dati di base.</p>
+    <button class="primary" onclick="UI.go('viaggio')">Configura il viaggio →</button>
+  </div>
+
+  <div id="dash-content">
+    <div class="cards">
+      <div class="card hero">
+        <div class="card-label">Destinazione</div>
+        <div class="hero-dest" id="d-dest">—</div>
+        <div class="hero-sub" id="d-dates">—</div>
+        <div class="chips" id="d-chips"></div>
+      </div>
+      <div class="card countdown">
+        <div class="card-label">Countdown</div>
+        <div class="big" id="d-count">—</div>
+        <div class="hero-sub" id="d-count-sub"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Meteo previsto</div>
+        <div class="big" id="d-temp">—</div>
+        <div class="hero-sub" id="d-weather-sub">In attesa dei dati…</div>
+        <button class="ghost small" id="btn-refresh-weather">↻ Aggiorna meteo</button>
+      </div>
+      <div class="card">
+        <div class="card-label">Avanzamento checklist</div>
+        <div class="big" id="d-progress">0%</div>
+        <div class="bar"><i id="d-bar" style="width:0%"></i></div>
+        <div class="hero-sub" id="d-progress-sub">—</div>
+      </div>
+    </div>
+
+    <div id="d-alerts"></div>
+
+    <div class="panel">
+      <h3>Meteo giorno per giorno</h3>
+      <div class="scroll-x"><div id="d-forecast" class="forecast">Nessun dato meteo.</div></div>
+      <p class="note" id="d-weather-source"></p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Prossimi impegni</h3>
+        <div id="d-next">—</div>
+      </div>
+      <div class="panel">
+        <h3>Numeri utili</h3>
+        <div id="d-emergency">—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHECKLIST ============ -->
+<section id="tab-checklist" class="tab">
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Checklist dinamica</h3>
+      <div class="row">
+        <button class="ghost small" id="btn-regen">↻ Rigenera da meteo/durata</button>
+        <button class="ghost small" id="btn-reset-checks">Azzera spunte</button>
+      </div>
+    </div>
+    <p class="note" id="cl-logic">—</p>
+    <div class="bar big-bar"><i id="cl-bar" style="width:0%"></i></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Aggiungi voce</h3></div>
+    <form id="form-item" class="row wrap">
+      <select id="it-cat" aria-label="Categoria oggetto">
+        <option value="documenti">Documenti</option>
+        <option value="abbigliamento">Abbigliamento &amp; Cambi</option>
+        <option value="elettronica">Elettronica</option>
+        <option value="igiene">Igiene &amp; Salute</option>
+        <option value="extra">Extra</option>
+      </select>
+      <input id="it-name" placeholder="Nome oggetto" required aria-label="Nome oggetto">
+      <input id="it-qty" type="number" min="1" value="1" style="width:90px" aria-label="Quantità">
+      <button class="primary">+ Aggiungi</button>
+    </form>
+  </div>
+
+  <div id="checklist-groups"></div>
+</section>
+
+<!-- ============ VAULT ============ -->
+<section id="tab-vault" class="tab">
+  <div class="panel">
+    <div class="panel-head"><h3>Archivia documento</h3></div>
+    <form id="form-doc" class="col">
+      <div class="row wrap">
+        <select id="dc-type" aria-label="Tipo di documento">
+          <option value="passaporto">Passaporto</option>
+          <option value="carta_identita">Carta d'identità</option>
+          <option value="carta_imbarco">Carta d'imbarco / Biglietto</option>
+          <option value="hotel">Prenotazione hotel</option>
+          <option value="assicurazione">Assicurazione</option>
+          <option value="patente">Patente</option>
+          <option value="altro">Altro</option>
+        </select>
+        <input id="dc-title" placeholder="Etichetta (es. Passaporto Mario)" aria-label="Etichetta">
+      </div>
+      <div class="row wrap">
+        <label class="lbl" id="dc-expiry-wrap"><span id="dc-expiry-txt">📅 Scadenza passaporto (per avvisi validità)</span>
+          <input id="dc-expiry" type="date">
+        </label>
+        <label class="lbl"><span id="dc-file-hint">📷 Scansiona o carica foto della prima pagina con foto e MRZ</span>
+          <input id="dc-file" type="file" accept="image/*,application/pdf" capture="environment" multiple required>
+        </label>
+      </div>
+      <div id="dc-files" class="note"></div>
+      <textarea id="dc-notes" rows="2" placeholder="Note (facoltative)" aria-label="Note"></textarea>
+      <div class="row">
+        <button class="primary">💾 Archivia nel Vault</button>
+      </div>
+      <p class="note">🔒 I file restano solo su questo dispositivo: nessun caricamento online, nessuna elaborazione del contenuto.</p>
+    </form>
+  </div>
+
+  <div id="vault-list"></div>
+</section>
+
+<!-- ============ CONTATTI ============ -->
+<section id="tab-contatti" class="tab">
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-head"><h3>Nuovo contatto</h3></div>
+      <form id="form-contact" class="col">
+        <div class="row wrap">
+          <select id="ct-kind" aria-label="Tipo di contatto">
+            <option value="struttura">🏨 Struttura / Alloggio</option>
+            <option value="emergenza">🚨 Emergenza</option>
+            <option value="trasporto">🚕 Trasporto</option>
+            <option value="ristorante">🍽️ Ristorante / Locale</option>
+            <option value="altro">📌 Altro</option>
+          </select>
+          <input id="ct-name" placeholder="Nome" required aria-label="Nome">
+        </div>
+        <div class="row wrap">
+          <input id="ct-phone" placeholder="Telefono (+39…)" aria-label="Telefono">
+          <input id="ct-email" placeholder="Email" aria-label="Email">
+        </div>
+        <input id="ct-addr" placeholder="Indirizzo" aria-label="Indirizzo">
+        <div class="row wrap" id="ct-times">
+          <input id="ct-in" placeholder="Check-in (es. 15:00)" aria-label="Check-in">
+          <input id="ct-out" placeholder="Check-out (es. 10:00)" aria-label="Check-out">
+        </div>
+        <input id="ct-ref" placeholder="Codice prenotazione / riferimento" aria-label="Riferimento">
+        <textarea id="ct-notes" rows="2" placeholder="Note"></textarea>
+        <p class="note">📷 Carica una foto o scontrino per compilare automaticamente i dati del contatto via OCR.</p>
+        <div id="ct-scan"></div>
+        <div id="ct-media-count" class="note"></div>
+        <div class="row wrap">
+          <input id="ct-media" type="file" accept="image/*,application/pdf" multiple aria-label="Foto e allegati contatto">
+          <button class="primary">+ Salva contatto</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+  <h3 class="sec">Contatti salvati</h3>
+  <div id="contacts-list" class="cards-grid"></div>
+</section>
+
+<!-- ============ ITINERARIO & POI ============ -->
+<section id="tab-itinerario" class="tab">
+  <div class="panel">
+    <div class="panel-head"><h3>Programma giorno per giorno</h3></div>
+    <p class="note">Ogni attività con un luogo diventa un link cliccabile che apre Google Maps. Scrivi <b>Attività @ luogo</b> per agganciare la mappa.</p>
+  </div>
+  <div id="itin-days"></div>
+
+  <h3 class="sec">Punti di interesse</h3>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Nuovo punto di interesse</h3></div>
+    <form id="form-poi" class="col">
+      <div class="row wrap">
+        <label class="lbl" style="flex:1 1 100%">📍 Link Google Maps (incolla per autocompilare i campi)
+          <input id="poi-maps-url" type="url" placeholder="Incolla link Google Maps (es. https://maps.app.goo.gl/... o https://google.com/maps/place/...)">
+        </label>
+      </div>
+      <div class="row wrap">
+        <input id="poi-name" placeholder="Nome luogo" required>
+        <input id="poi-addr" placeholder="Indirizzo / zona">
+      </div>
+      <div class="row wrap">
+        <select id="poi-cat">
+          <option value="visita">Da visitare</option>
+          <option value="cibo">Mangiare</option>
+          <option value="trasporto">Trasporto</option>
+          <option value="shopping">Shopping</option>
+          <option value="altro">Altro</option>
+        </select>
+        <input id="poi-day" type="date" aria-label="Giorno previsto">
+      </div>
+      <textarea id="poi-notes" rows="2" placeholder="Note di viaggio (orari, prezzo, prenotazione…)"></textarea>
+      <p class="note">📷 Puoi allegare foto, mappe o biglietti a questo punto di interesse (anche più di uno).</p>
+      <div id="poi-media-count" class="note"></div>
+      <div class="row wrap">
+        <input id="poi-media" type="file" accept="image/*,application/pdf" multiple aria-label="Foto e allegati POI">
+        <button class="primary">+ Salva POI</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="pois-list" class="cards-grid"></div>
+</section>
+
+<!-- ============ VIAGGIO & BAGAGLI ============ -->
+<section id="tab-viaggio" class="tab">
+  <div class="panel">
+    <div class="panel-head"><h3>Dati del viaggio</h3></div>
+    <form id="form-trip" class="col">
+      <div class="grid-3">
+        <label class="lbl">Destinazione (città)
+          <input id="tp-dest" placeholder="es. Lisbona" required>
+        </label>
+        <label class="lbl">Paese
+          <input id="tp-country" placeholder="es. Portogallo" list="countries">
+          <datalist id="countries"></datalist>
+        </label>
+        <label class="lbl">Viaggiatori
+          <input id="tp-travelers" type="number" min="1" value="1">
+        </label>
+        <label class="lbl">Partenza
+          <input id="tp-start" type="date" required>
+        </label>
+        <label class="lbl">Rientro
+          <input id="tp-end" type="date" required>
+        </label>
+        <label class="lbl">Tipologia viaggio
+          <select id="tp-type">
+            <option value="urbano">Urbano / City break</option>
+            <option value="business">Business</option>
+            <option value="trekking">Trekking / Outdoor</option>
+            <option value="relax">Relax / Mare</option>
+          </select>
+        </label>
+        <label class="lbl">Mezzo di trasporto
+          <select id="tp-transport">
+            <option value="aereo">Aereo</option>
+            <option value="treno">Treno</option>
+            <option value="auto">Auto</option>
+            <option value="nave">Nave</option>
+          </select>
+        </label>
+        <label class="lbl">Compagnia aerea
+          <select id="tp-airline"></select>
+        </label>
+        <label class="lbl">Tariffa
+          <select id="tp-fare"></select>
+        </label>
+        <div class="col" style="grid-column: 1 / -1; gap:6px; margin-top:4px">
+          <label class="lbl">Bagaglio disponibile</label>
+          <div id="tp-luggage-list"></div>
+          <button type="button" class="ghost" id="btn-go-bagagli" style="align-self:flex-start">🧳 Vai alla sezione Bagagli ↓</button>
+        </div>
+        <label class="lbl">Lavanderia disponibile
+          <select id="tp-laundry">
+            <option value="no">No</option>
+            <option value="si">Sì (riduce i cambi)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button class="primary">💾 Salva e genera checklist</button>
+        <button type="button" class="danger ghost" id="btn-wipe">Cancella tutto</button>
+      </div>
+    </form>
+  </div>
+
+  <h3 class="sec">Bagagli</h3>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Scheda volo &amp; franchigie</h3></div>
+    <div id="bag-rules">Compila i dati del viaggio per vedere le franchigie.</div>
+    <p class="note">⚠️ Le regole delle compagnie cambiano spesso: verifica sempre sul sito ufficiale prima del check-in. Dati inseriti come riferimento operativo.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3 id="bag-form-title">Aggiungi un collo</h3></div>
+    <form id="form-bag" class="col">
+      <div class="row wrap">
+        <input id="bg-name" placeholder="Nome del collo (es. Trolley cabina)">
+        <select id="bg-type" aria-label="Tipo di collo">
+          <option value="">Tipo: automatico dalle misure</option>
+          <option value="zaino">🎒 Zaino / borsa piccola</option>
+          <option value="trolley">🧳 Trolley cabina</option>
+          <option value="stiva">📦 Bagaglio da stiva</option>
+        </select>
+      </div>
+      <div class="row wrap">
+        <label class="lbl">L (cm)<input id="bg-l" type="number" min="1" placeholder="55"></label>
+        <label class="lbl">P (cm)<input id="bg-w" type="number" min="1" placeholder="40"></label>
+        <label class="lbl">H (cm)<input id="bg-h" type="number" min="1" placeholder="20"></label>
+        <label class="lbl">Peso (kg)<input id="bg-kg" type="number" min="0" step="0.1" placeholder="10"></label>
+      </div>
+      <div class="row wrap">
+        <button class="primary">Verifica</button>
+        <button type="button" class="ghost" id="btn-bag-add">+ Aggiungi al set</button>
+      </div>
+    </form>
+    <div id="bag-check"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Il mio set bagagli (combo)</h3><button class="ghost small" id="btn-bag-clear">Svuota set</button></div>
+    <p class="note">I colli inseriti qui sono quelli usati da checklist e franchigie: vengono assegnati agli slot inclusi nella tariffa (borsa piccola, trolley, stiva) e ti segnalo quelli in eccesso.</p>
+    <div id="bag-set"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Liquidi in cabina</h3></div>
+    <div id="bag-liquids"></div>
+  </div>
+</section>
+
+</main>
+
+<dialog id="modal-auth" class="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="auth-title">🔑 Accedi a PartiAmo</h3>
+      <button class="ghost icon-btn" onclick="$('#modal-auth').close()">✕</button>
+    </div>
+    
+    <div id="auth-unlogged" class="col gap-12" style="gap:12px; display:flex; flex-direction:column">
+      <p class="note">Accedi per creare viaggi, sincronizzarli tra dispositivi ed invitare i tuoi compagni di viaggio.</p>
+      
+      <button class="primary row gap-8 justify-center" id="btn-google-login" style="padding:10px; font-weight:600">
+        🌐 Accedi con Google
+      </button>
+      
+      <div class="note center" style="text-align:center; margin:4px 0">— oppure con Magic Link (OTP) —</div>
+      
+      <form id="form-magic-link" class="col gap-8" style="gap:8px; display:flex; flex-direction:column">
+        <input type="email" id="auth-email" placeholder="La tua email (es. mario@gmail.com)" required aria-label="Email">
+        <button class="ghost small" style="padding:9px">+ Invia link di accesso via Email</button>
+      </form>
+      
+      <div id="auth-status" class="note"></div>
+      
+      <details class="supa-config-box" style="margin-top:10px">
+        <summary class="note" style="cursor:pointer">⚙️ Credenziali Supabase (Se self-hosted)</summary>
+        <div class="col gap-8" style="margin-top:8px; gap:8px; display:flex; flex-direction:column">
+          <input id="supa-url-input" placeholder="SUPABASE_URL (https://xxx.supabase.co)">
+          <input id="supa-key-input" placeholder="SUPABASE_ANON_KEY">
+          <button class="ghost small" id="btn-save-supa-config">Salva credenziali</button>
+        </div>
+      </details>
+    </div>
+
+    <div id="auth-logged" class="col gap-12 hidden" style="gap:12px; flex-direction:column">
+      <div class="user-profile-card" style="display:flex; align-items:center; gap:12px; background:var(--surface-2); padding:12px; border-radius:12px">
+        <div class="user-avatar" id="user-avatar-txt" style="font-size:24px">👤</div>
+        <div class="user-info" style="display:flex; flex-direction:column">
+          <strong id="user-display-name">Utente</strong>
+          <span id="user-display-email" class="note">email@domain.com</span>
+        </div>
+      </div>
+      <p class="note">Sei autenticato. I tuoi dati del Vault e la tua Checklist restano privati sul tuo account.</p>
+      <button class="ghost small" id="btn-logout" style="color:var(--warn); border-color:var(--warn)">Esci dall'account</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="modal-share" class="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>👥 Condividi Viaggio</h3>
+      <button class="ghost icon-btn" onclick="$('#modal-share').close()">✕</button>
+    </div>
+    
+    <div class="col gap-12" style="display:flex; flex-direction:column; gap:12px">
+      <p class="note">Chiunque riceva questo link potrà unirsi al viaggio per visualizzare ed aggiungere <b>POI, Itinerari e Contatti</b>. I documenti del Vault e la Checklist rimarranno personali.</p>
+      
+      <div class="kv">
+        <dt>Codice Invito</dt>
+        <dd><b id="share-code-txt">—</b></dd>
+      </div>
+
+      <div class="row wrap gap-8" style="display:flex; gap:8px">
+        <input id="share-link-input" readonly style="flex:1 1 180px; font-size:12px">
+        <button class="primary small" id="btn-copy-invite-link" style="flex:0 0 auto">📋 Copia Link</button>
+      </div>
+
+      <h4 style="margin-top:10px; font-size:14px">Compagni di Viaggio</h4>
+      <div id="share-participants-list" class="col gap-6" style="display:flex; flex-direction:column; gap:6px"></div>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="vendor/tesseract.min.js" defer></script>
+<script src="vendor/pdf.min.js" defer></script>
+<script src="js/scan.js" defer></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/checklist.js"></script>
+<script src="js/baggage.js"></script>
+<script src="js/ocr.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

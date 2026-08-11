@@ -1,0 +1,6 @@
+# Local development & scratch files
+scratch/
+.claude/
+node_modules/
+.DS_Store
+*.log
