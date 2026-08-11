@@ -656,17 +656,30 @@ const UI = {
   renderEmergency(box) {
     const t = Store.s.trip;
     const ci = DATA.countryInfo(t.country) || (Store.s.weather && DATA.countryInfo(Store.s.weather.country)) || DATA.defaultCountry;
-    const country = t.country || (Store.s.weather && Store.s.weather.country) || "";
+    const rawCountry = t.country || (Store.s.weather && Store.s.weather.country) || "";
+    
+    let embassyQuery = "Ambasciata d'Italia";
+    const cleanCountry = (rawCountry && !/ital/i.test(rawCountry)) ? rawCountry.trim() : "";
+    const cleanDest = (t.dest && !/ital/i.test(t.dest)) ? t.dest.trim() : "";
+    
+    if (cleanDest && cleanCountry) {
+      embassyQuery = `Ambasciata d'Italia ${cleanDest} ${cleanCountry}`;
+    } else if (cleanDest) {
+      embassyQuery = `Ambasciata d'Italia ${cleanDest}`;
+    } else if (cleanCountry) {
+      embassyQuery = `Ambasciata d'Italia ${cleanCountry}`;
+    }
+
     box.innerHTML = `<div class="kv">
         <dt>Emergenze</dt><dd>${esc(ci.emg)}</dd>
         <dt>Prese elettriche</dt><dd>Tipo ${esc(ci.plugs)} · ${esc(ci.volt)}</dd>
         <dt>Area</dt><dd>${ci.eu ? "UE — TEAM valida" : "Extra UE — assicurazione consigliata"}</dd>
       </div>
       <div class="actions">
-        <a href="${mapsUrl("Ambasciata d'Italia " + country)}" target="_blank" rel="noopener">🏛️ Ambasciata italiana</a>
-        <a href="${mapsUrl("ospedale " + t.dest)}" target="_blank" rel="noopener">🏥 Ospedale più vicino</a>
-        <a href="${mapsUrl("farmacia " + t.dest)}" target="_blank" rel="noopener">💊 Farmacia</a>
-        <a href="${mapsUrl("polizia " + t.dest)}" target="_blank" rel="noopener">🚓 Polizia</a>
+        <a href="${mapsUrl(embassyQuery)}" target="_blank" rel="noopener">🏛️ Ambasciata italiana</a>
+        <a href="${mapsUrl("ospedale " + (t.dest || rawCountry))}" target="_blank" rel="noopener">🏥 Ospedale più vicino</a>
+        <a href="${mapsUrl("farmacia " + (t.dest || rawCountry))}" target="_blank" rel="noopener">💊 Farmacia</a>
+        <a href="${mapsUrl("polizia " + (t.dest || rawCountry))}" target="_blank" rel="noopener">🚓 Polizia</a>
       </div>`;
   },
 
