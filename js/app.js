@@ -220,39 +220,40 @@ const UI = {
       if (emailEl) emailEl.textContent = user.email;
 
       if (window.Supa) {
-        if (Store.s.trip && Store.s.trip.dest) {
-          await Supa.saveTrip(Store.s.trip);
-        } else {
-          const userTrips = await Supa.getUserTrips();
-          if (userTrips && userTrips.length) {
-            const cloudTrip = userTrips[0];
-            Store.s.trip.id = cloudTrip.id;
-            Store.s.trip.dest = cloudTrip.dest;
-            Store.s.trip.country = cloudTrip.country || "";
-            Store.s.trip.start = cloudTrip.start_date;
-            Store.s.trip.end = cloudTrip.end_date;
-            Store.s.trip.transport = cloudTrip.transport || "aereo";
-            Store.s.trip.airline = cloudTrip.airline || "nessuna";
-            Store.s.trip.fare = cloudTrip.fare || "nessuna";
-            Store.s.trip.inviteCode = cloudTrip.invite_code;
-            const sub = await Supa.loadTripSubData(cloudTrip.id);
-            if (sub.pois && sub.pois.length) {
-              Store.s.pois = sub.pois.map(p => ({
-                id: p.id, name: p.name, addr: p.addr, mapsUrl: p.maps_url, cat: p.cat, day: p.day, notes: p.notes, files: p.files || []
-              }));
-            }
-            if (sub.contacts && sub.contacts.length) {
-              Store.s.contacts = sub.contacts.map(c => ({
-                id: c.id, kind: c.kind, name: c.name, phone: c.phone, email: c.email, addr: c.addr, cin: c.cin, cout: c.cout, ref: c.ref, notes: c.notes, files: c.files || []
-              }));
-            }
+        const userTrips = await Supa.getUserTrips();
+        if (userTrips && userTrips.length) {
+          const cloudTrip = userTrips[0];
+          Store.s.trip.id = cloudTrip.id;
+          Store.s.trip.dest = cloudTrip.dest;
+          Store.s.trip.country = cloudTrip.country || "";
+          Store.s.trip.start = cloudTrip.start_date;
+          Store.s.trip.end = cloudTrip.end_date;
+          Store.s.trip.transport = cloudTrip.transport || "aereo";
+          Store.s.trip.airline = cloudTrip.airline || "nessuna";
+          Store.s.trip.fare = cloudTrip.fare || "nessuna";
+          Store.s.trip.inviteCode = cloudTrip.invite_code;
+          const sub = await Supa.loadTripSubData(cloudTrip.id);
+          if (sub.pois && sub.pois.length) {
+            Store.s.pois = sub.pois.map(p => ({
+              id: p.id, name: p.name, addr: p.addr, mapsUrl: p.maps_url, cat: p.cat, day: p.day, notes: p.notes, files: p.files || []
+            }));
+          }
+          if (sub.contacts && sub.contacts.length) {
+            Store.s.contacts = sub.contacts.map(c => ({
+              id: c.id, kind: c.kind, name: c.name, phone: c.phone, email: c.email, addr: c.addr, cin: c.cin, cout: c.cout, ref: c.ref, notes: c.notes, files: c.files || []
+            }));
+          }
 
-            Store.save();
-            this.loadTripForm();
-            await this.refreshWeather(true);
-            Checklist.refresh();
-            this.renderAll();
-            this.toast(`🎉 Viaggio per ${cloudTrip.dest} ripristinato dal cloud!`);
+          Store.save();
+          this.loadTripForm();
+          await this.refreshWeather(true);
+          Checklist.refresh();
+          this.renderAll();
+          this.toast(`🎉 Viaggio per ${cloudTrip.dest} ripristinato dal cloud!`);
+        } else if (Store.s.trip && Store.s.trip.dest) {
+          const synced = await Supa.saveTrip(Store.s.trip);
+          if (synced) {
+            this.toast("☁️ Viaggio sincronizzato sul tuo account cloud!");
           }
         }
       }
