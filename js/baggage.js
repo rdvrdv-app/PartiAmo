@@ -16,9 +16,22 @@ const Baggage = (function () {
 
   function card(trip) {
     if (noFlight(trip)) {
-      const mezzo = trip.transport === "aereo" ? "nessuna compagnia selezionata" : `mezzo <b>${trip.transport}</b>`;
-      return `<div class="alert info">🚆 Viaggio senza volo (${mezzo}): nessun limite di franchigia aerea.
-        Verifica comunque i limiti del vettore (es. Trenitalia: bagaglio a mano max 3 colli per persona).</div>`;
+      let icon = "🚗";
+      let msg = "";
+      if (trip.transport === "auto") {
+        icon = "🚗";
+        msg = "<b>Viaggio in auto</b>: nessun limite di franchigia. I colli inseriti servono a calcolare la quantità ideale di vestiti nella checklist e a pianificare lo spazio nel bagagliaio.";
+      } else if (trip.transport === "nave") {
+        icon = "🚢";
+        msg = "<b>Viaggio in nave/traghetto</b>: nessun limite di rigore aereo. Utile separare uno zaino/borsa a mano per la traversata (documenti, felpa per aria condizionata, rimedi per il mare) dalla valigia grande.";
+      } else if (trip.transport === "treno") {
+        icon = "🚆";
+        msg = "<b>Viaggio in treno</b>: nessun limite aereo. Ricorda che sulle tratte ad alta velocità valgono le regole di ingombro delle cappelliere (solitamente max 2-3 colli a passeggero).";
+      } else {
+        icon = "🚌";
+        msg = `Viaggio con mezzo <b>${esc(trip.transport)}</b>: nessun limite di franchigia aerea.`;
+      }
+      return `<div class="alert info">${icon} ${msg}</div>`;
     }
     const { airline, fare } = rule(trip);
     let h = `<div class="kv">
