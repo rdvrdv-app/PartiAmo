@@ -358,37 +358,44 @@
 <dialog id="modal-auth" class="modal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3 id="auth-title">🔑 Accedi a PartiAmo</h3>
-      <button class="ghost icon-btn" onclick="$('#modal-auth').close()">✕</button>
+      <h3 id="auth-title">✨ Accedi a PartiAmo</h3>
+      <button class="ghost icon-btn" onclick="$('#modal-auth').close()" aria-label="Chiudi">✕</button>
     </div>
     
-    <div id="auth-unlogged" class="col gap-12" style="gap:12px; display:flex; flex-direction:column">
-      <p class="note">Accedi per creare viaggi, sincronizzarli tra dispositivi ed invitare i tuoi compagni di viaggio.</p>
+    <div id="auth-unlogged" class="col gap-12">
+      <p class="note" style="margin:0; font-size:13px">Accedi per creare i tuoi viaggi, sincronizzarli tra dispositivi ed invitare i tuoi amici in tempo reale.</p>
       
-      <button class="primary row gap-8 justify-center" id="btn-google-login" style="padding:10px; font-weight:600">
-        🌐 Accedi con Google
+      <button class="btn-google-auth" id="btn-google-login">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Accedi con Google</span>
       </button>
       
-      <div class="note center" style="text-align:center; margin:4px 0">— oppure con Magic Link (OTP) —</div>
+      <div class="auth-divider">oppure con Magic Link</div>
       
-      <form id="form-magic-link" class="col gap-8" style="gap:8px; display:flex; flex-direction:column">
+      <form id="form-magic-link" class="auth-magic-box">
+        <label style="font-size:12px; font-weight:600; color:var(--muted)">Link d'accesso monouso via Email</label>
         <input type="email" id="auth-email" placeholder="La tua email (es. mario@gmail.com)" required aria-label="Email">
-        <button class="ghost small" style="padding:9px">+ Invia link di accesso via Email</button>
+        <button type="submit" class="auth-magic-btn">✉️ Invia Link di Accesso</button>
       </form>
       
       <div id="auth-status" class="note"></div>
     </div>
 
-    <div id="auth-logged" class="col gap-12 hidden" style="gap:12px; flex-direction:column">
-      <div class="user-profile-card" style="display:flex; align-items:center; gap:12px; background:var(--surface-2); padding:12px; border-radius:12px">
-        <div class="user-avatar" id="user-avatar-txt" style="font-size:24px">👤</div>
-        <div class="user-info" style="display:flex; flex-direction:column">
-          <strong id="user-display-name">Utente</strong>
-          <span id="user-display-email" class="note">email@domain.com</span>
+    <div id="auth-logged" class="col gap-12 hidden">
+      <div class="user-profile-card" style="display:flex; align-items:center; gap:12px; background:var(--surface-2); padding:14px; border-radius:16px; border:1px solid var(--border)">
+        <div class="user-avatar" id="user-avatar-txt" style="font-size:24px; width:44px; height:44px; background:var(--accent-soft); border-radius:50%; display:flex; align-items:center; justify-content:center">👤</div>
+        <div class="user-info" style="display:flex; flex-direction:column; flex:1">
+          <strong id="user-display-name" style="font-size:15px">Utente</strong>
+          <span id="user-display-email" class="note" style="margin:0; font-size:12px">email@domain.com</span>
         </div>
       </div>
-      <p class="note">Sei autenticato. I tuoi dati del Vault e la tua Checklist restano privati sul tuo account.</p>
-      <button class="ghost small" id="btn-logout" style="color:var(--warn); border-color:var(--warn)">Esci dall'account</button>
+      <p class="note" style="margin-top:4px">Sei autenticato. I tuoi dati del Vault e la tua Checklist restano privati ed al sicuro sul tuo account.</p>
+      <button class="ghost small" id="btn-logout" style="color:var(--warn); border-color:var(--warn); padding:10px; font-weight:600">Esci dall'account</button>
     </div>
   </div>
 </dialog>
@@ -397,23 +404,23 @@
   <div class="modal-box">
     <div class="modal-head">
       <h3>👥 Condividi Viaggio</h3>
-      <button class="ghost icon-btn" onclick="$('#modal-share').close()">✕</button>
+      <button class="ghost icon-btn" onclick="$('#modal-share').close()" aria-label="Chiudi">✕</button>
     </div>
     
     <div class="col gap-12" style="display:flex; flex-direction:column; gap:12px">
-      <p class="note">Chiunque riceva questo link potrà unirsi al viaggio per visualizzare ed aggiungere <b>POI, Itinerari e Contatti</b>. I documenti del Vault e la Checklist rimarranno personali.</p>
+      <p class="note" style="margin:0; font-size:13px">Chiunque riceva questo link potrà unirsi al viaggio per visualizzare e collaborare su <b>Itinerari, POI e Contatti</b>. I documenti del Vault e la Checklist rimarranno privati.</p>
       
-      <div class="kv">
-        <dt>Codice Invito</dt>
-        <dd><b id="share-code-txt">—</b></dd>
+      <div class="auth-magic-box" style="gap:8px; padding:14px">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted)">Codice Invito Viaggio</span>
+        <b id="share-code-txt" style="font-size:20px; letter-spacing:1px; color:var(--accent)">—</b>
       </div>
 
       <div class="row wrap gap-8" style="display:flex; gap:8px">
-        <input id="share-link-input" readonly style="flex:1 1 180px; font-size:12px">
-        <button class="primary small" id="btn-copy-invite-link" style="flex:0 0 auto">📋 Copia Link</button>
+        <input id="share-link-input" readonly style="flex:1 1 180px; font-size:13px; background:var(--surface-2)">
+        <button class="primary small" id="btn-copy-invite-link" style="flex:0 0 auto; padding:10px 14px">📋 Copia Link</button>
       </div>
 
-      <h4 style="margin-top:10px; font-size:14px">Compagni di Viaggio</h4>
+      <h4 style="margin-top:10px; font-size:14px; font-weight:700">Compagni di Viaggio</h4>
       <div id="share-participants-list" class="col gap-6" style="display:flex; flex-direction:column; gap:6px"></div>
     </div>
   </div>
