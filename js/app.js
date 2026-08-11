@@ -672,11 +672,12 @@ const UI = {
     Object.keys(s.itinerary).sort().forEach(day => {
       if (day < t.start) return;
       SLOTS.forEach(([k, lbl]) => {
-        (s.itinerary[day][k] || []).slice(0, 2).forEach(a => {
+        (s.itinerary[day][k] || []).slice(0, 3).forEach(a => {
           items.push({
             date: day,
+            time: a.time || "",
             rawName: a.text,
-            html: `🗓️ ${itDate(day)} · ${lbl}: ${esc(a.text)}`,
+            html: `🗓️ ${itDate(day)}${a.time ? ` <b>${esc(a.time)}</b>` : ""} · ${lbl}: ${esc(a.text)}`,
             tab: "itinerario",
             day: day
           });
@@ -684,8 +685,8 @@ const UI = {
       });
     });
 
-    // Sort commitments chronologically by date
-    items.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    // Sort commitments chronologically by date and time
+    items.sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
 
     // Deduplicate items on the same date with matching names/keywords
     const uniqueItems = [];
@@ -1647,6 +1648,7 @@ const UI = {
               <h5 style="margin-bottom:6px">${SLOT_ICONS[k] || "📌"} ${lbl}</h5>
               ${(day[k] || []).map((a, idx) => `
                 <div class="act">
+                  ${a.time ? `<span class="badge" style="font-size:11.5px; background:var(--accent-soft); color:var(--accent); font-weight:700; flex:0 0 auto">⏰ ${esc(a.time)}</span>` : ""}
                   <span class="t">${esc(a.text)}</span>
                   ${a.place ? `<a class="map" href="${mapsUrl(a.place + " " + (t.dest || ""))}" target="_blank" rel="noopener">🗺️ ${esc(a.place)}</a>` : ""}
                   <button class="x" data-del-act="${iso}|${k}|${idx}" title="Elimina attività">✕</button>
@@ -1662,6 +1664,7 @@ const UI = {
               </select>
             ` : ""}
             <div class="row wrap" style="gap:6px">
+              <input class="itin-time-input" type="time" aria-label="Orario (opzionale)" title="Orario attività" style="flex:0 0 95px; font-size:13px">
               <input class="itin-text-input" placeholder="Attività @ luogo (es. Visita Castello)" aria-label="Descrizione attività" style="flex:1 1 180px">
               <select class="itin-slot-select" aria-label="Fase della giornata" style="flex:0 0 130px; font-size:13px">
                 ${SLOTS.map(([k, lbl]) => `<option value="${k}">${lbl}</option>`).join("")}
@@ -1684,13 +1687,14 @@ const UI = {
       const form = e.target.closest("form[data-add-day-act]"); if (!form) return;
       e.preventDefault();
       const iso = form.dataset.addDayAct;
+      const time = (form.querySelector(".itin-time-input")?.value || "").trim();
       const raw = (form.querySelector(".itin-text-input").value || "").trim();
       const slot = form.querySelector(".itin-slot-select").value;
       if (!raw) return;
       const [text, place] = raw.split("@").map(x => x.trim());
       s.itinerary[iso] = s.itinerary[iso] || {};
       s.itinerary[iso][slot] = s.itinerary[iso][slot] || [];
-      s.itinerary[iso][slot].push({ text: text || raw, place: place || "" });
+      s.itinerary[iso][slot].push({ text: text || raw, place: place || "", time: time || "" });
       Store.save(); this.renderItinerary(); this.renderDashboard();
     };
 
