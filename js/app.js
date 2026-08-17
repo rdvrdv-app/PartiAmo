@@ -57,36 +57,50 @@ const UI = {
   /* ---------------- auth & sharing ---------------- */
   async initAuth() {
     this.bindAuth();
-    this.checkHashError();
-    if (window.Supa) {
-      const user = await Supa.init();
-      this.onAuthChanged(user);
-    }
+    if (!window.Supa) return;
+
+    // Va fatto prima di tutto: se si arriva dal link ricevuto per email,
+    // qui la sessione viene creata e l'URL ripulito dai token.
+    const urlAuth = await Supa.completeUrlAuth();
+    if (urlAuth && urlAuth.status === "error") this.showAuthError(urlAuth);
+
+    const user = await Supa.init();
+    await this.onAuthChanged(user);
+    this.bindCloudRefresh();
     this.checkJoinUrl();
   },
 
-  checkHashError() {
-    if (!window.location.hash) return;
-    const params = new URLSearchParams(window.location.hash.substring(1));
-    const errorCode = params.get("error_code");
-    const errorDesc = params.get("error_description");
-    
-    if (errorCode || errorDesc) {
-      let msg = "Impossibile accedere";
-      if (errorCode === "otp_expired" || (errorDesc && errorDesc.includes("expired"))) {
-        msg = "Il link di accesso via email è scaduto o è già stato utilizzato. Richiedine uno nuovo.";
-      } else if (errorDesc) {
-        msg = errorDesc.replace(/\+/g, " ");
-      }
-      
-      this.toast("⚠️ " + msg);
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-      
-      setTimeout(() => {
-        const modal = $("#modal-auth");
-        if (modal && typeof modal.showModal === "function") modal.showModal();
-      }, 500);
+  showAuthError(info) {
+    const code = info.code || "";
+    const desc = info.description || "";
+    let msg = "Impossibile accedere";
+    if (code === "otp_expired" || /expired|invalid/i.test(desc)) {
+      msg = "Il link di accesso è scaduto o è già stato usato. Richiedine uno nuovo: vale una sola volta e per 1 ora.";
+    } else if (desc) {
+      msg = desc;
     }
+    this.toast("⚠️ " + msg);
+    setTimeout(() => {
+      const modal = $("#modal-auth");
+      if (modal && typeof modal.showModal === "function") modal.showModal();
+      const statusEl = $("#auth-status");
+      if (statusEl) { statusEl.className = "note warn"; statusEl.textContent = "⚠️ " + msg; }
+    }, 400);
+  },
+
+  /* Tornando sull'app (cambio scheda, riapertura da mobile) si riallinea
+     con il cloud: è così che le modifiche fatte sul telefono compaiono sul
+     PC senza dover ricaricare la pagina. */
+  bindCloudRefresh() {
+    const maybeSync = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!window.Supa || !Supa.getUser()) return;
+      const now = Date.now();
+      if (this._lastCloudSync && now - this._lastCloudSync < 30000) return;
+      this.syncWithCloud({ silent: true });
+    };
+    document.addEventListener("visibilitychange", maybeSync);
+    window.addEventListener("online", maybeSync);
   },
 
   bindAuth() {
@@ -112,10 +126,13 @@ const UI = {
         if (!email) return;
         try {
           statusEl.className = "note info";
-          statusEl.textContent = "⏳ Invio codice in corso…";
+          statusEl.textContent = "⏳ Invio email in corso…";
           await Supa.signInMagicLink(email);
           statusEl.className = "note ok";
-          statusEl.textContent = "✅ Email inviata! Clicca direttamente sul link nell'email per accedere in 1-click (oppure inserisci il codice a 6 cifre sotto):";
+          statusEl.innerHTML = "✅ Email inviata a <b>" + esc(email) + "</b>.<br>" +
+            "Apri il messaggio <b>su questo dispositivo</b> e clicca il link, " +
+            "oppure incolla qui sotto il codice a 6 cifre <b>o il link stesso</b> " +
+            "(utile se leggi la mail dal telefono e vuoi entrare dal PC).";
           const otpForm = $("#form-otp-verify");
           if (otpForm) {
             otpForm.classList.remove("hidden");
@@ -140,20 +157,28 @@ const UI = {
         const email = $("#auth-email").value.trim();
         const code = $("#auth-otp-code").value.trim();
         const statusEl = $("#auth-status");
-        if (!email || !code) return;
+        if (!code) return;
+        if (!email && !/^https?:\/\//i.test(code)) {
+          statusEl.className = "note warn";
+          statusEl.textContent = "⚠️ Inserisci anche l'email con cui hai richiesto il codice.";
+          return;
+        }
         try {
           statusEl.className = "note info";
-          statusEl.textContent = "⏳ Verifica codice in corso…";
+          statusEl.textContent = "⏳ Verifica in corso…";
           await Supa.verifyOtp(email, code);
           statusEl.className = "note ok";
-          statusEl.textContent = "🎉 Codice verificato! Accesso effettuato con successo.";
+          statusEl.textContent = "🎉 Accesso effettuato: sto recuperando i tuoi viaggi…";
           setTimeout(() => {
             const modal = $("#modal-auth");
             if (modal && typeof modal.close === "function") modal.close();
-          }, 800);
+          }, 1200);
         } catch (err) {
           statusEl.className = "note warn";
-          statusEl.textContent = "⚠️ Codice non valido o scaduto. Verifica le 6 cifre nella mail.";
+          const msg = (err && err.message) || "";
+          statusEl.textContent = /expired/i.test(msg)
+            ? "⚠️ Codice o link scaduto (valgono 1 ora e una sola volta). Richiedine uno nuovo."
+            : "⚠️ Codice o link non valido. Incolla le 6 cifre della mail, oppure l'intero link di accesso.";
         }
       });
     }
@@ -204,88 +229,250 @@ const UI = {
     }
   },
 
-  async onAuthChanged(user) {
+  renderAuthUi(user) {
     const btnAuth = $("#btn-auth");
     const unloggedBox = $("#auth-unlogged");
     const loggedBox = $("#auth-logged");
 
     if (user) {
-      if (btnAuth) btnAuth.textContent = "👤 " + (user.email ? user.email.split("@")[0] : "Account");
+      const label = user.email ? user.email.split("@")[0] : "Account";
+      if (btnAuth) btnAuth.textContent = "👤 " + label;
       if (unloggedBox) unloggedBox.classList.add("hidden");
       if (loggedBox) loggedBox.classList.remove("hidden");
-      
       const nameEl = $("#user-display-name");
       const emailEl = $("#user-display-email");
-      if (nameEl) nameEl.textContent = (user.user_metadata && user.user_metadata.full_name) || user.email.split("@")[0];
-      if (emailEl) emailEl.textContent = user.email;
-
-      if (window.Supa) {
-        const userTrips = await Supa.getUserTrips();
-        if (userTrips && userTrips.length) {
-          const cloudTrip = userTrips[0];
-          Store.s.trip.id = cloudTrip.id;
-          Store.s.trip.dest = cloudTrip.dest;
-          Store.s.trip.country = cloudTrip.country || "";
-          Store.s.trip.start = cloudTrip.start_date;
-          Store.s.trip.end = cloudTrip.end_date;
-          Store.s.trip.transport = cloudTrip.transport || "aereo";
-          Store.s.trip.airline = cloudTrip.airline || "nessuna";
-          Store.s.trip.fare = cloudTrip.fare || "nessuna";
-          Store.s.trip.inviteCode = cloudTrip.invite_code;
-          const sub = await Supa.loadTripSubData(cloudTrip.id);
-          if (sub.pois && sub.pois.length) {
-            Store.s.pois = sub.pois.map(p => ({
-              id: p.id, name: p.name, addr: p.addr, mapsUrl: p.maps_url, cat: p.cat, day: p.day, notes: p.notes, files: p.files || []
-            }));
-          }
-          if (sub.contacts && sub.contacts.length) {
-            Store.s.contacts = sub.contacts.map(c => ({
-              id: c.id, kind: c.kind, name: c.name, phone: c.phone, email: c.email, addr: c.addr, cin: c.cin, cout: c.cout, ref: c.ref, notes: c.notes, files: c.files || []
-            }));
-          }
-
-          Store.save();
-          this.loadTripForm();
-          await this.refreshWeather(true);
-          Checklist.refresh();
-          this.renderAll();
-          this.toast(`🎉 Viaggio per ${cloudTrip.dest} ripristinato dal cloud!`);
-        } else if (Store.s.trip && Store.s.trip.dest) {
-          const synced = await Supa.saveTrip(Store.s.trip);
-          if (synced) {
-            this.toast("☁️ Viaggio sincronizzato sul tuo account cloud!");
-          }
-        }
-      }
+      if (nameEl) nameEl.textContent = (user.user_metadata && user.user_metadata.full_name) || label;
+      if (emailEl) emailEl.textContent = user.email || "";
     } else {
       if (btnAuth) btnAuth.textContent = "🔑 Accedi";
       if (unloggedBox) unloggedBox.classList.remove("hidden");
       if (loggedBox) loggedBox.classList.add("hidden");
     }
 
-    const t = Store.s.trip;
     const btnShare = $("#btn-share-trip");
-    if (btnShare) btnShare.classList.toggle("hidden", !t.dest);
+    if (btnShare) btnShare.classList.toggle("hidden", !Store.s.trip.dest);
+  },
+
+  async onAuthChanged(user) {
+    this.renderAuthUi(user);
+
+    if (!user) {
+      this._syncedUserId = null;
+      return;
+    }
+
+    // onAuthStateChange e la chiamata iniziale possono arrivare entrambe:
+    // il ripristino deve partire una volta sola per utente.
+    if (this._syncedUserId === user.id) return;
+    this._syncedUserId = user.id;
+
+    try {
+      await this.syncWithCloud({ announce: true });
+    } catch (err) {
+      this._syncedUserId = null;
+      console.warn("Ripristino dal cloud:", err);
+      this.toast("⚠️ Sincronizzazione non riuscita: riprova tra poco");
+    }
+  },
+
+  /* Allinea stato locale e cloud in entrambe le direzioni.
+     announce: mostra i messaggi (al login); silent: aggiornamento in sordina. */
+  async syncWithCloud(opts) {
+    const options = opts || {};
+    if (!window.Supa || !Supa.getUser()) return;
+    if (this._syncing) return this._syncing;
+
+    this._syncing = (async () => {
+      const s = Store.s;
+      Store.pauseSync();
+      try {
+        // Un viaggio creato qui e mai inviato va salvato prima di leggere,
+        // altrimenti il ripristino lo sovrascriverebbe.
+        if (s.trip.dest && !Supa.isUuid(s.trip.id)) {
+          Store.resumeSync();
+          await Store.syncNow();
+          Store.pauseSync();
+        }
+
+        const remote = await Supa.pullTrip(s.trip.id);
+        this._lastCloudSync = Date.now();
+
+        if (!remote) {
+          if (s.trip.dest) {
+            Store.resumeSync();
+            const saved = await Store.syncNow();
+            Store.pauseSync();
+            if (saved && options.announce) this.toast("☁️ Viaggio sincronizzato sul tuo account");
+          }
+          return;
+        }
+
+        const isNewTrip = remote.trip.id !== s.trip.id;
+        this.applyRemoteTrip(remote);
+        Store.saveLocalOnly();
+
+        this.loadTripForm();
+        Checklist.refresh();
+        this.renderAll();
+        if (s.trip.dest && (!s.weather || isNewTrip)) await this.refreshWeather(true);
+
+        if (options.announce) {
+          this.toast(isNewTrip
+            ? `🎉 Viaggio per ${s.trip.dest} ripristinato dal cloud!`
+            : "☁️ Dati aggiornati dal cloud");
+        }
+      } finally {
+        // Rimanda al cloud quello che esisteva solo qui.
+        Store.resumeSync(true);
+      }
+    })();
+
+    try { return await this._syncing; } finally { this._syncing = null; }
+  },
+
+  /* Fonde i dati remoti con quelli locali senza perdere nulla:
+     - i campi del viaggio arrivano dal cloud (è la copia condivisa);
+     - le schede presenti in entrambi vengono aggiornate dal cloud, ma
+       conservano gli allegati locali (i file restano sul dispositivo);
+     - le schede solo locali e mai sincronizzate restano e verranno inviate;
+     - le schede già sincronizzate e sparite dal cloud sono state cancellate
+       da un altro dispositivo, quindi vanno via anche qui. */
+  applyRemoteTrip(remote) {
+    const s = Store.s;
+    const tombs = s.deleted || { pois: [], contacts: [], itinerary: [] };
+
+    const rt = remote.trip;
+    Object.assign(s.trip, {
+      id: rt.id,
+      ownerId: rt.ownerId,
+      inviteCode: rt.inviteCode || s.trip.inviteCode || "",
+      dest: rt.dest,
+      country: rt.country,
+      start: rt.start,
+      end: rt.end,
+      travelers: rt.travelers,
+      transport: rt.transport,
+      airline: rt.airline,
+      fare: rt.fare,
+      type: rt.type,
+      laundry: rt.laundry
+    });
+    if (rt.luggage) s.trip.luggage = rt.luggage;
+    if (rt.luggages) s.trip.luggages = rt.luggages;
+    if (rt.bags) s.bags = rt.bags;
+
+    s.pois = this.mergeCollections(s.pois, remote.pois, tombs.pois);
+    s.contacts = this.mergeCollections(s.contacts, remote.contacts, tombs.contacts);
+    s.itinerary = this.mergeItineraries(s.itinerary, remote.itinerary, tombs.itinerary);
+
+    if (remote.checklist) {
+      const localEmpty = !s.checklist || !s.checklist.length;
+      if (localEmpty) {
+        s.checklist = remote.checklist.list;
+        s.removed = remote.checklist.removed;
+      }
+    }
+  },
+
+  mergeCollections(local, remote, tombstones) {
+    const removed = new Set(tombstones || []);
+    const byId = new Map((local || []).map(x => [x.id, x]));
+    const out = [];
+
+    (remote || []).forEach(r => {
+      if (removed.has(r.id)) return;            // cancellata qui, non ancora nel cloud
+      const l = byId.get(r.id);
+      byId.delete(r.id);
+      if (!l) { out.push(r); return; }
+      // Gli allegati vivono in IndexedDB su questo dispositivo: il cloud non
+      // li conosce e non deve cancellarne i riferimenti.
+      out.push(Object.assign({}, l, r, { files: l.files || [] }));
+    });
+
+    byId.forEach(l => { if (!l.syncedAt) out.push(l); });
+    return out;
+  },
+
+  mergeItineraries(local, remote, tombstones) {
+    const removed = new Set(tombstones || []);
+    const out = {};
+    const seen = new Set();
+
+    Object.keys(remote || {}).forEach(day => {
+      Object.keys(remote[day]).forEach(slot => {
+        remote[day][slot].forEach(act => {
+          if (removed.has(act.id)) return;
+          seen.add(act.id);
+          out[day] = out[day] || {};
+          out[day][slot] = out[day][slot] || [];
+          out[day][slot].push(act);
+        });
+      });
+    });
+
+    Object.keys(local || {}).forEach(day => {
+      Object.keys(local[day] || {}).forEach(slot => {
+        (local[day][slot] || []).forEach(act => {
+          if (!act || !act.text) return;
+          if (act.id && seen.has(act.id)) return;
+          if (act.id && act.syncedAt) return;   // rimossa da un altro dispositivo
+          out[day] = out[day] || {};
+          out[day][slot] = out[day][slot] || [];
+          out[day][slot].push(act);
+        });
+      });
+    });
+
+    return out;
   },
 
   async checkJoinUrl() {
+    const PENDING_KEY = "partiamo.pending_join";
     const params = new URLSearchParams(window.location.search);
-    const joinCode = params.get("join");
+    const joinCode = params.get("join") || localStorage.getItem(PENDING_KEY);
     if (!joinCode) return;
 
     if (!Supa.getUser()) {
+      // Il link di accesso via email riporta all'app senza query string:
+      // il codice invito va messo da parte, o andrebbe perso.
+      try { localStorage.setItem(PENDING_KEY, joinCode); } catch (e) {}
       this.toast(`🔑 Accedi per unirti al viaggio (Codice: ${joinCode.toUpperCase()})`);
       const modal = $("#modal-auth");
       if (modal && typeof modal.showModal === "function") modal.showModal();
       return;
     }
 
+    const s = Store.s;
+    if (s.trip.dest && s.trip.id !== joinCode &&
+        !confirm(`Unendoti a questo viaggio, "${s.trip.dest}" verrà sostituito su questo dispositivo (resta salvato nel tuo account). Procedere?`)) {
+      try { localStorage.removeItem(PENDING_KEY); } catch (e) {}
+      return;
+    }
+
     try {
       this.toast("⏳ Collegamento al viaggio in corso…");
       const trip = await Supa.joinTripByCode(joinCode);
+      try { localStorage.removeItem(PENDING_KEY); } catch (e) {}
+      if (window.location.search.includes("join=")) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Si adotta il viaggio raggiunto: le schede condivise arrivano dal cloud,
+      // quelle del viaggio precedente restano nel proprio viaggio d'origine.
+      if (trip.id !== s.trip.id) {
+        s.trip.id = trip.id;
+        s.pois = [];
+        s.contacts = [];
+        s.itinerary = {};
+        s.checklist = [];
+        s.deleted = { pois: [], contacts: [], itinerary: [] };
+        Store.saveLocalOnly();
+      }
+
+      Supa.resetSyncCache();
+      this._lastCloudSync = 0;
+      await this.syncWithCloud({});
       this.toast(`🎉 Ti sei unito al viaggio per ${trip.dest}!`);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      this.renderAll();
     } catch (err) {
       this.toast("⚠️ Impossibile unirti: " + err.message);
     }
@@ -502,9 +689,7 @@ const UI = {
       if (t.transport === "auto" && (!Store.s.bags || !Store.s.bags.length)) { t.luggages = []; }
       if (t.end < t.start) { this.toast("La data di rientro precede la partenza"); return; }
       Store.save();
-      if (window.Supa && Supa.getUser()) {
-        await Supa.saveTrip(t);
-      }
+      await Store.syncNow();
       await this.refreshWeather(true);
       Checklist.refresh();
       this.renderAll();
@@ -512,10 +697,26 @@ const UI = {
       this.toast(primaConfigurazione ? "Viaggio salvato: checklist generata" : "Modifiche salvate");
     });
 
-    $("#btn-wipe").addEventListener("click", () => {
-      if (confirm("Cancellare viaggio, checklist, documenti e allegati?")) {
-        Store.reset(); this.loadTripForm(); this.renderAll(); this.toast("Dati cancellati");
-      }
+    $("#btn-wipe").addEventListener("click", async () => {
+      if (!confirm("Cancellare viaggio, checklist, documenti e allegati?")) return;
+
+      const cloudId = Store.s.trip.id;
+      const logged = window.Supa && Supa.getUser();
+      // Senza questo passaggio il viaggio tornerebbe dal cloud al primo accesso.
+      const alsoCloud = logged && Supa.isUuid(cloudId) &&
+        confirm("Eliminare il viaggio anche dal tuo account (e quindi dagli altri dispositivi)?");
+
+      Store.pauseSync();
+      Store.reset();
+      if (alsoCloud) await Supa.deleteTrip(cloudId);
+      if (window.Supa) Supa.resetSyncCache();
+      Store.resumeSync();
+
+      this.loadTripForm();
+      this.renderAll();
+      this.toast(alsoCloud
+        ? "Dati cancellati su tutti i dispositivi"
+        : (logged ? "Dati cancellati qui: il viaggio resta nel tuo account e tornerà al prossimo accesso" : "Dati cancellati"));
     });
   },
 
@@ -1509,6 +1710,7 @@ const UI = {
       for (const f of it.files || []) await Media.del(f.id);
       if (isPoi) Store.s.pois = list.filter(x => x.id !== id);
       else Store.s.contacts = list.filter(x => x.id !== id);
+      Store.tombstone(isPoi ? "pois" : "contacts", id);
       Store.save();
       this.renderContacts();
       this.renderItinerary();
@@ -1780,7 +1982,9 @@ const UI = {
       const slot = form.querySelector(".itin-slot-select").value;
       if (!raw) return;
       const [text, place] = raw.split("@").map(x => x.trim());
-      const actObj = { text: text || raw, place: place || "", time: time || "" };
+      // L'id accompagna l'attività per tutta la vita: è la chiave con cui
+      // viene riconosciuta (e non duplicata) sugli altri dispositivi.
+      const actObj = { id: Store.uuid(), text: text || raw, place: place || "", time: time || "" };
 
       s.itinerary[iso] = s.itinerary[iso] || {};
 
@@ -1789,6 +1993,8 @@ const UI = {
 
       if (editSlot !== undefined && editIdx !== undefined) {
         const oldIdx = +editIdx;
+        const previous = (s.itinerary[iso][editSlot] || [])[oldIdx];
+        if (previous && previous.id) { actObj.id = previous.id; actObj.syncedAt = previous.syncedAt; }
         if (editSlot === slot) {
           s.itinerary[iso][slot][oldIdx] = actObj;
         } else {
@@ -1843,7 +2049,8 @@ const UI = {
       if (delBtn) {
         const [iso, slot, idx] = delBtn.dataset.delAct.split("|");
         if (s.itinerary[iso] && s.itinerary[iso][slot]) {
-          s.itinerary[iso][slot].splice(+idx, 1);
+          const [removedAct] = s.itinerary[iso][slot].splice(+idx, 1);
+          if (removedAct && removedAct.id) Store.tombstone("itinerary", removedAct.id);
           Store.save(); this.renderItinerary(); this.renderDashboard();
         }
       }

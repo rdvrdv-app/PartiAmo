@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1020">
 <title>PartiAmo — Assistente di Viaggio</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://jobclfopbomkuabnbjgr.supabase.co" crossorigin>
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -369,16 +371,18 @@
       
       <form id="form-magic-link" class="auth-magic-box">
         <label style="font-size:12px; font-weight:600; color:var(--muted)">Inserisci la tua email per accedere senza password</label>
-        <input type="email" id="auth-email" placeholder="La tua email (es. mario@gmail.com)" required aria-label="Email">
+        <input type="email" id="auth-email" placeholder="La tua email (es. mario@gmail.com)" required aria-label="Email" autocomplete="email" inputmode="email">
         <button type="submit" class="auth-magic-btn">✉️ Invia Email di Accesso</button>
+        <p class="note" style="margin:6px 0 0; font-size:11.5px">Usa <b>sempre la stessa email</b> su PC e telefono: è quella che tiene insieme i tuoi viaggi.</p>
       </form>
-      
+
       <form id="form-otp-verify" class="auth-magic-box hidden" style="margin-top:8px">
-        <label style="font-size:12px; font-weight:600; color:var(--accent)">Inserisci il Codice a 6 cifre (se presente nella mail):</label>
+        <label style="font-size:12px; font-weight:600; color:var(--accent)">Codice a 6 cifre — oppure incolla qui il link ricevuto per email</label>
         <div class="row wrap gap-8" style="display:flex; gap:8px">
-          <input type="text" id="auth-otp-code" placeholder="123456" maxlength="8" style="font-size:18px; font-weight:700; letter-spacing:4px; text-align:center; flex:1 1 140px">
+          <input type="text" id="auth-otp-code" placeholder="123456 oppure https://…" style="font-size:16px; font-weight:600; text-align:center; flex:1 1 140px" autocomplete="one-time-code" aria-label="Codice o link di accesso">
           <button type="submit" class="primary small" style="flex:0 0 auto; padding:10px 18px">🔑 Accedi</button>
         </div>
+        <p class="note" style="margin:6px 0 0; font-size:11.5px">Se la mail contiene solo il link, tienilo premuto → <b>Copia link</b> e incollalo qui: entri lo stesso, anche da un altro dispositivo.</p>
       </form>
 
       <div id="auth-status" class="note"></div>
@@ -426,17 +430,19 @@
 
 <div id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
+<!-- Tutti gli script sono "defer": non bloccano il primo rendering e vengono
+     comunque eseguiti nell'ordine di dichiarazione, prima di DOMContentLoaded. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" defer></script>
+<script src="js/supabase.js" defer></script>
 <script src="vendor/tesseract.min.js" defer></script>
 <script src="vendor/pdf.min.js" defer></script>
 <script src="js/scan.js" defer></script>
-<script src="js/data.js"></script>
-<script src="js/store.js"></script>
-<script src="js/weather.js"></script>
-<script src="js/checklist.js"></script>
-<script src="js/baggage.js"></script>
-<script src="js/ocr.js"></script>
-<script src="js/app.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/store.js" defer></script>
+<script src="js/weather.js" defer></script>
+<script src="js/checklist.js" defer></script>
+<script src="js/baggage.js" defer></script>
+<script src="js/ocr.js" defer></script>
+<script src="js/app.js" defer></script>
 </body>
 </html>

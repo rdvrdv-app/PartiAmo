@@ -18,6 +18,10 @@ const Store = (function () {
       contacts: [],
       pois: [],
       itinerary: {},
+      // Id delle schede cancellate in locale, in attesa di essere rimosse
+      // anche dal cloud: propagare le cancellazioni per id evita di toccare
+      // ciò che gli altri partecipanti hanno aggiunto nel frattempo.
+      deleted: { pois: [], contacts: [], itinerary: [] },
       theme: null
     };
   }
@@ -36,6 +40,12 @@ const Store = (function () {
           if (l.includes("stiva")) arr.push({ id: "l3", type: "stiva" });
           state.trip.luggages = arr;
         }
+        const d = state.deleted && typeof state.deleted === "object" ? state.deleted : {};
+        state.deleted = {
+          pois: Array.isArray(d.pois) ? d.pois : [],
+          contacts: Array.isArray(d.contacts) ? d.contacts : [],
+          itinerary: Array.isArray(d.itinerary) ? d.itinerary : []
+        };
       }
     } catch (e) {
       console.warn("Stato corrotto, reset", e);
@@ -44,28 +54,72 @@ const Store = (function () {
     return state;
   }
 
-  let saveTimer = null;
-  function save() {
+  function persist() {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
-      if (window.Supa && typeof Supa.getUser === "function" && Supa.getUser() && state.trip && state.trip.dest) {
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => {
-          Supa.saveTrip(state.trip);
-        }, 1000);
-      }
+      return true;
     } catch (e) {
       if (typeof UI !== "undefined" && UI && UI.toast) UI.toast("Spazio esaurito: rimuovi qualche allegato");
+      return false;
     }
   }
 
-  function reset() { state = blank(); save(); Media.clear(); }
+  let syncTimer = null;
+  let syncPaused = false;
+
+  function scheduleSync() {
+    if (syncPaused) return;
+    if (!window.Supa || typeof Supa.getUser !== "function" || !Supa.getUser()) return;
+    if (!state.trip || !state.trip.dest) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      Supa.pushTrip(state).catch(err => console.warn("Sync:", err));
+    }, 1200);
+  }
+
+  /* save()            → salva in locale e programma la sincronizzazione.
+     saveLocalOnly()   → salva soltanto in locale (usato dalla sincronizzazione
+                         stessa per non innescare un ciclo di scritture). */
+  function save() {
+    if (persist()) scheduleSync();
+  }
+
+  function saveLocalOnly() { persist(); }
+
+  function reset() {
+    state = blank();
+    persist();
+    Media.clear();
+  }
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const uuid = () => (window.Supa && Supa.uuid) ? Supa.uuid() :
+    (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : uid());
 
   return {
     get s() { return state; },
-    load, save, reset, uid
+    load, save, saveLocalOnly, reset, uid, uuid,
+
+    /* Segna una scheda come cancellata, così la rimozione arriva anche
+       sugli altri dispositivi al prossimo salvataggio. */
+    tombstone(kind, id) {
+      if (!id || !state.deleted || !state.deleted[kind]) return;
+      if (!state.deleted[kind].includes(id)) state.deleted[kind].push(id);
+    },
+
+    /* Durante il ripristino dal cloud le scritture locali non devono
+       rimbalzare sul database sovrascrivendo i dati appena scaricati. */
+    pauseSync() { syncPaused = true; clearTimeout(syncTimer); },
+    resumeSync(runNow) {
+      syncPaused = false;
+      if (runNow) scheduleSync();
+    },
+    syncNow() {
+      clearTimeout(syncTimer);
+      if (syncPaused) return Promise.resolve(null);
+      if (!window.Supa || !Supa.getUser || !Supa.getUser()) return Promise.resolve(null);
+      return Supa.pushTrip(state).catch(err => { console.warn("Sync:", err); return null; });
+    }
   };
 })();
 
