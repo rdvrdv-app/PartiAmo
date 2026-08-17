@@ -2,8 +2,27 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- maximum-scale=1, user-scalable=no: senza questi, l'app aggiunta alla Home
+     su iOS riapre ogni volta con lo zoom rimasto dall'ultima sessione, perché
+     in modalità standalone la WebView non viene ricreata da zero come in
+     Safari — resta la stessa istanza sospesa, zoom compreso. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b1020">
+
+<!-- Manifest + meta "capable": senza questi, "Aggiungi alla schermata Home"
+     crea solo un segnalibro aperto dentro Safari/Chrome, non una vera app a
+     schermo intero — da qui sia lo zoom errato sia il fatto che iOS applichi
+     ai segnalibri permessi diversi (es. sui file da caricare) rispetto a una
+     scheda del browser vero e proprio. -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PartiAmo">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icon-192.png" sizes="192x192">
+<link rel="icon" href="assets/icon-512.png" sizes="512x512">
+
 <title>PartiAmo — Assistente di Viaggio</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://jobclfopbomkuabnbjgr.supabase.co" crossorigin>
