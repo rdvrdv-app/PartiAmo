@@ -244,6 +244,10 @@ const Supa = (function () {
       return getSavedCredentials().url;
     },
 
+    getAnonKey() {
+      return getSavedCredentials().key;
+    },
+
     getClient() {
       if (!client) initClient();
       return client;

@@ -55,9 +55,17 @@ const Assistant = (function () {
 
   async function ask(text) {
     history.push({ role: "user", content: text });
+    // Le Edge Function di Supabase richiedono un header di autorizzazione:
+    // basta la chiave anon pubblica, non serve un utente loggato.
+    const anonKey = (typeof Supa !== "undefined" && Supa.getAnonKey) ? Supa.getAnonKey() : "";
+    const headers = { "Content-Type": "application/json" };
+    if (anonKey) {
+      headers["Authorization"] = "Bearer " + anonKey;
+      headers["apikey"] = anonKey;
+    }
     const r = await fetch(endpointUrl(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ messages: history, context: context() })
     });
     const data = await r.json().catch(() => ({ error: "Risposta non valida dal server" }));
