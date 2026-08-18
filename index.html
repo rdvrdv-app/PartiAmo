@@ -47,6 +47,7 @@
   <button data-tab="itinerario"><i>📍</i><em>Itinerario</em></button>
   <button data-tab="contatti"><i>📇</i><em>Contatti</em></button>
   <button data-tab="checklist"><i>✅</i><em>Checklist</em></button>
+  <button data-tab="assistente"><i>✦</i><em>Assistente</em></button>
 </nav>
 
 <main>
@@ -87,6 +88,14 @@
     </div>
 
     <div id="d-alerts"></div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3><span class="ai-badge">✦</span> Assistente</h3>
+        <button class="ghost small" id="btn-ai-open">Apri la conversazione →</button>
+      </div>
+      <div id="ai-suggestions"></div>
+    </div>
 
     <div class="panel">
       <h3>Meteo giorno per giorno</h3>
@@ -138,6 +147,47 @@
   </div>
 
   <div id="checklist-groups"></div>
+</section>
+
+<!-- ============ ASSISTENTE ============ -->
+<section id="tab-assistente" class="tab">
+  <div class="ai-layout">
+    <div class="panel ai-panel">
+      <div class="ai-head">
+        <span class="ai-badge">✦</span>
+        <div style="flex:1">
+          <h3>Assistente PartiAmo</h3>
+          <div class="sub" id="ai-status">Legge i dati del tuo viaggio</div>
+        </div>
+      </div>
+
+      <div id="ai-thread" class="ai-thread"></div>
+
+      <div class="ai-foot">
+        <div class="ai-chips">
+          <button type="button" class="ai-chip" data-ai-ask="Cosa metto in valigia per i giorni di pioggia?">Cosa metto in valigia?</button>
+          <button type="button" class="ai-chip" data-ai-ask="Riorganizza le tappe di domani in base al meteo">Riorganizza domani</button>
+          <button type="button" class="ai-chip" data-ai-ask="Il mio bagaglio rientra nella franchigia della tariffa?">Il bagaglio rientra?</button>
+        </div>
+        <form id="form-ai" class="row">
+          <input id="ai-input" placeholder="Chiedi qualcosa sul viaggio…" aria-label="Domanda all'assistente" autocomplete="off">
+          <button class="primary">Invia</button>
+        </form>
+        <p class="note">L'assistente legge solo i dati del viaggio salvati sul dispositivo. I file del Vault non vengono inviati.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Cosa può fare</h3></div>
+      <p class="note">
+        · Riorganizzare l'itinerario in base al meteo<br>
+        · Rigenerare la checklist per durata e clima<br>
+        · Verificare franchigie e misure dei colli<br>
+        · Ricordarti le scadenze dei documenti<br>
+        · Trovare POI e contatti vicino all'alloggio
+      </p>
+    </div>
+  </div>
 </section>
 
 <!-- ============ VAULT ============ -->
@@ -384,10 +434,10 @@
       <h3 id="auth-title">✨ Accedi a PartiAmo</h3>
       <button class="ghost icon-btn" onclick="$('#modal-auth').close()" aria-label="Chiudi">✕</button>
     </div>
-    
+
     <div id="auth-unlogged" class="col gap-12">
       <p class="note" style="margin:0; font-size:13px">Accedi per salvare i tuoi viaggi, sincronizzarli tra dispositivi ed invitare i tuoi compagni di viaggio.</p>
-      
+
       <form id="form-magic-link" class="auth-magic-box">
         <label style="font-size:12px; font-weight:600; color:var(--muted)">Inserisci la tua email per accedere senza password</label>
         <input type="email" id="auth-email" placeholder="La tua email (es. mario@gmail.com)" required aria-label="Email" autocomplete="email" inputmode="email">
@@ -427,10 +477,10 @@
       <h3>👥 Condividi Viaggio</h3>
       <button class="ghost icon-btn" onclick="$('#modal-share').close()" aria-label="Chiudi">✕</button>
     </div>
-    
+
     <div class="col gap-12" style="display:flex; flex-direction:column; gap:12px">
       <p class="note" style="margin:0; font-size:13px">Chiunque riceva questo link potrà unirsi al viaggio per visualizzare e collaborare su <b>Itinerari, POI e Contatti</b>. I documenti del Vault e la Checklist rimarranno privati.</p>
-      
+
       <div class="auth-magic-box" style="gap:8px; padding:14px">
         <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted)">Codice Invito Viaggio</span>
         <b id="share-code-txt" style="font-size:20px; letter-spacing:1px; color:var(--accent)">—</b>
@@ -446,6 +496,8 @@
     </div>
   </div>
 </dialog>
+
+<button id="btn-ai-fab" type="button">✦ Chiedi all'assistente</button>
 
 <div id="toast"></div>
 
@@ -463,5 +515,6 @@
 <script src="js/baggage.js" defer></script>
 <script src="js/ocr.js" defer></script>
 <script src="js/app.js" defer></script>
+<script src="js/assistant.js" defer></script>
 </body>
 </html>
