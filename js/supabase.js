@@ -240,6 +240,10 @@ const Supa = (function () {
     uuid,
     isUuid,
 
+    getUrl() {
+      return getSavedCredentials().url;
+    },
+
     getClient() {
       if (!client) initClient();
       return client;

@@ -152,34 +152,44 @@ Tutto **client-side**, nessun upload a servizi esterni:
 
 ---
 
-## ✦ Assistente virtuale — completo, manca solo la chiave
+## ✦ Assistente virtuale — completo, backend su Supabase
 
 Il tab Assistente, la card suggerimenti in Dashboard e il pulsante
 flottante (`js/assistant.js`) raccolgono il contesto del viaggio
 (destinazione, date, meteo, checklist, bagagli, itinerario — **mai** file
-o note del Vault, solo tipo/scadenza documenti) e lo inviano a
-`POST /api/assistant`.
+o note del Vault, solo tipo/scadenza documenti) e chiamano direttamente
+una **Supabase Edge Function**, `supabase/functions/assistant/index.ts`
+(Deno). Architettura scelta deliberatamente per non dover gestire un
+server Node separato: il frontend statico vive su GitHub (Pages), il
+backend è una function serverless nello stesso progetto Supabase già
+usato per auth e dati.
 
-**L'endpoint ora esiste**, in `server.js` (aggiunto senza dipendenze npm,
-solo `http`/`fetch` nativi di Node 18+): inoltra i messaggi a
-`api.anthropic.com/v1/messages` (modello `claude-opus-5`) con un system
-prompt che include il contesto del viaggio, limita lo storico alle ultime
-12 battute, e applica un **rate limit di 20 richieste/10 minuti per IP**
-per proteggere l'endpoint pubblico. Verificato end-to-end con Playwright:
-senza chiave configurata la UI mostra correttamente "Assistente non
-configurato" invece di rompersi; con una chiave (anche non valida) la
-richiesta raggiunge davvero Anthropic e propaga l'errore reale.
+La function inoltra i messaggi a `api.anthropic.com/v1/messages`
+(modello `claude-opus-5`) con un system prompt che: usa solo il contesto
+del viaggio ricevuto, limita lo storico alle ultime 12 battute, e
+**rifiuta in una riga le domande non legate al viaggio** (per non
+consumare crediti su richieste fuori scopo). Applica anche un rate limit
+di 20 richieste/10 minuti per IP (in memoria — si azzera ai cold start
+dell'istanza, accettabile per un uso personale).
 
-**Per attivarlo in produzione**: imposta la variabile d'ambiente
-`ANTHROPIC_API_KEY` dove gira `node server.js` (mai nel codice, mai nel
-repo — `.env` è già in `.gitignore`). Senza questa variabile l'endpoint
-risponde 500 con un messaggio chiaro, e la card suggerimenti in Dashboard
-continua a funzionare comunque perché calcolata localmente senza rete.
+Verificato: sintassi/tipi controllati con `tsc`, comportamento
+end-to-end confermato con Playwright (URL chiamata, corpo della
+richiesta, rendering della risposta in chat).
 
-⚠️ **Nota**: `avvia.bat` lancia oggi `python -m http.server`, non
-`node server.js` — quindi il launcher Windows attuale non serve
-`/api/assistant`. Per testare l'assistente in locale serve avviare
-`node server.js` direttamente (o aggiornare `avvia.bat`, da valutare).
+**Per attivarla**:
+```
+supabase functions deploy assistant --no-verify-jwt
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+La chiave non va mai incollata nel codice, in chat o nel repo — solo nei
+secret del progetto Supabase (Dashboard → Edge Functions → Secrets, o CLI
+come sopra). `--no-verify-jwt` perché l'assistente funziona anche senza
+login, come il resto dell'app (dati letti da `localStorage`).
+
+`server.js` è tornato a essere solo un server statico per lo sviluppo
+locale (nessuna logica dell'assistente lì) — coerente con l'architettura
+"tutto tra GitHub e Supabase", nessun host Node da mantenere in
+produzione.
 
 ---
 

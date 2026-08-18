@@ -1,6 +1,7 @@
 /* assistant.js — Assistente virtuale PartiAmo.
    Rende la chat nel tab #tab-assistente, il pannello suggerimenti in dashboard
-   e il pulsante fluttuante. Parla con /api/assistant (Claude lato server).
+   e il pulsante fluttuante. Parla con la Supabase Edge Function "assistant"
+   (Claude lato server, chiave mai esposta al client).
    Nessun dato del Vault viene inviato. */
 
 const Assistant = (function () {
@@ -45,9 +46,16 @@ const Assistant = (function () {
   }
 
   /* ---------- rete ---------- */
+  function endpointUrl() {
+    // Backend su Supabase Edge Function: stessa base URL già usata per auth/sync
+    // (Supa.getUrl(), configurabile), niente server Node da gestire a parte.
+    const base = (typeof Supa !== "undefined" && Supa.getUrl) ? Supa.getUrl() : "";
+    return base ? base.replace(/\/$/, "") + "/functions/v1/assistant" : "/api/assistant";
+  }
+
   async function ask(text) {
     history.push({ role: "user", content: text });
-    const r = await fetch("/api/assistant", {
+    const r = await fetch(endpointUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: history, context: context() })
