@@ -1,0 +1,335 @@
+/* liquid-glass.css — layer visivo "Liquid Glass" per PartiAmo.
+   ADDITIVO: va caricato DOPO assets/styles.css, non lo sostituisce.
+   Ridefinisce i token e riveste le classi già esistenti (.topbar, .tabs, .panel,
+   .card, .ai-*, .modal-box) — nessuna modifica al markup né al JS.
+
+   Tema chiaro  = direzione "diurna"  (vetro chiaro, foto luminosa)
+   Tema scuro   = direzione "notturna" (vetro scuro, foto al tramonto)
+   Il toggle #btn-theme esistente commuta le due direzioni.
+
+   Sostituisci le due URL di --lg-photo con le tue foto (1600px+, poi
+   sfocate a runtime dal filtro: non servono già sfocate). */
+
+:root {
+  --lg-photo: url("../assets/bg-day.jpg");
+  --lg-sky: linear-gradient(180deg, #bfe4f5 0%, #8fc9e8 30%, #dfe9ee 58%, #f2e7dc 78%, #e8d9c8 100%);
+  --lg-blur: 15px;
+  --lg-veil: linear-gradient(200deg, rgba(255,255,255,.5), rgba(255,255,255,.16) 45%, rgba(255,255,255,.45));
+
+  /* vetro */
+  --lg-glass: rgba(255,255,255,.55);
+  --lg-glass-2: rgba(255,255,255,.42);
+  --lg-glass-strong: rgba(255,255,255,.72);
+  --lg-edge: rgba(255,255,255,.9);
+  --lg-spec: inset 0 1px 0 rgba(255,255,255,.95);
+  --lg-depth-1: 0 14px 40px rgba(20,40,70,.16);
+  --lg-depth-2: 0 22px 56px rgba(20,40,70,.2);
+  --lg-depth-3: 0 34px 80px rgba(20,40,70,.26);
+
+  /* token dell'app riportati sul vetro — alto contrasto sul testo */
+  --text: #0d141d;
+  --muted: rgba(13,20,29,.62);
+  --border: rgba(255,255,255,.85);
+  --surface: var(--lg-glass);
+  --surface-2: rgba(255,255,255,.6);
+  --accent: oklch(0.55 0.11 235);       /* blu oceano */
+  --accent-2: oklch(0.68 0.13 55);      /* arancio tramonto */
+  --accent-soft: rgba(255,255,255,.8);
+  --shadow: var(--lg-depth-1);
+  --radius: 26px;
+}
+
+html[data-theme="dark"] {
+  --lg-photo: url("../assets/bg-night.jpg");
+  --lg-sky: linear-gradient(180deg, #12213f 0%, #2b3b63 32%, #7a5a76 62%, #d98a63 84%, #f0b184 100%);
+  --lg-blur: 16px;
+  --lg-veil: linear-gradient(105deg, rgba(6,10,22,.66) 0%, rgba(6,10,22,.32) 46%, rgba(6,10,22,.58) 100%);
+
+  --lg-glass: rgba(255,255,255,.10);
+  --lg-glass-2: rgba(255,255,255,.07);
+  --lg-glass-strong: rgba(255,255,255,.17);
+  --lg-edge: rgba(255,255,255,.22);
+  --lg-spec: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(255,255,255,.07);
+  --lg-depth-1: 0 18px 44px rgba(0,0,0,.38);
+  --lg-depth-2: 0 26px 62px rgba(0,0,0,.46);
+  --lg-depth-3: 0 34px 84px rgba(0,0,0,.55);
+
+  --text: #ffffff;
+  --muted: rgba(255,255,255,.66);
+  --border: rgba(255,255,255,.2);
+  --surface-2: rgba(255,255,255,.13);
+  --accent: oklch(0.78 0.11 235);
+  --accent-2: oklch(0.8 0.12 55);
+  --accent-soft: rgba(255,255,255,.14);
+}
+
+/* ---------- livello 0: sfondo fotografico + mappa ---------- */
+
+body {
+  background: var(--lg-sky) !important;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+}
+
+/* foto sfocata: fixed, non scrolla — l'interfaccia scivola sopra il vetro */
+body::before {
+  content: "";
+  position: fixed; inset: -6%;
+  z-index: -2;
+  background: var(--lg-photo) center/cover no-repeat, var(--lg-sky);
+  filter: blur(var(--lg-blur)) saturate(118%);
+  transform: translateZ(0);
+}
+
+/* livello mappa minimalista + velo di leggibilità */
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  z-index: -1;
+  background:
+    repeating-linear-gradient(24deg, rgba(255,255,255,.9) 0 1.5px, transparent 1.5px 96px),
+    repeating-linear-gradient(-62deg, rgba(13,20,29,.16) 0 1px, transparent 1px 132px),
+    repeating-linear-gradient(92deg, rgba(13,20,29,.12) 0 1px, transparent 1px 220px),
+    var(--lg-veil);
+  background-blend-mode: overlay, normal, normal, normal;
+}
+html[data-theme="dark"] body::after {
+  background:
+    repeating-linear-gradient(28deg, rgba(255,255,255,.85) 0 1.5px, transparent 1.5px 92px),
+    repeating-linear-gradient(-54deg, rgba(255,255,255,.6) 0 1px, transparent 1px 130px),
+    repeating-linear-gradient(88deg, rgba(255,255,255,.45) 0 1px, transparent 1px 210px),
+    var(--lg-veil);
+}
+
+/* ---------- il vetro, una sola ricetta ---------- */
+
+.topbar,
+.tabs,
+.panel,
+.card,
+.modal-box,
+.cards-grid > *,
+#itin-days > details,
+.ai-panel {
+  background: var(--lg-glass) !important;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--lg-edge) !important;
+  box-shadow: var(--lg-depth-1), var(--lg-spec) !important;
+  border-radius: var(--radius);
+}
+
+/* highlight speculare sul bordo alto: una riga di luce, non un gradiente */
+.panel, .card, .ai-panel, .modal-box { position: relative; overflow: hidden; }
+.panel::before, .card::before, .ai-panel::before, .modal-box::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), transparent);
+  pointer-events: none;
+}
+
+/* profondità: le superfici toccate salgono di un livello */
+.card:hover, .panel:hover, .cards-grid > *:hover {
+  box-shadow: var(--lg-depth-2), var(--lg-spec) !important;
+  transform: translateY(-2px);
+}
+.card, .panel, .cards-grid > * { transition: transform .28s cubic-bezier(.2,.9,.3,1.15), box-shadow .28s; }
+
+/* la card hero resta l'unico blocco pieno: è l'accento cromatico della pagina */
+.card.hero {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 70%, transparent),
+    color-mix(in srgb, var(--accent-2) 60%, transparent)) !important;
+  color: #fff;
+  border-color: rgba(255,255,255,.34) !important;
+}
+.card.hero .card-label, .card.hero .hero-sub { color: rgba(255,255,255,.86); }
+
+/* ---------- topbar e dock ---------- */
+
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  margin: 12px; border-radius: 24px;
+  box-shadow: var(--lg-depth-2), var(--lg-spec) !important;
+}
+.brand b { background: none; color: inherit; font-weight: 300; }
+
+/* nav come dock fluttuante: orizzontale su desktop, con magnify all'hover */
+.tabs {
+  position: sticky; top: 84px; z-index: 25;
+  margin: 0 12px 16px;
+  border-radius: 30px;
+  padding: 10px 14px;
+  gap: 8px;
+  box-shadow: var(--lg-depth-2), var(--lg-spec) !important;
+}
+.tabs button {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  border-radius: 18px;
+  color: var(--muted);
+  transform-origin: bottom center;
+  transition: transform .22s cubic-bezier(.2,.9,.3,1.35), background .2s, color .2s;
+}
+.tabs button i { font-size: 20px; }
+.tabs button:hover { transform: scale(1.18) translateY(-4px); background: var(--lg-glass-strong) !important; }
+.tabs button.active {
+  color: var(--text);
+  background: var(--lg-glass-strong) !important;
+  border-color: var(--lg-edge) !important;
+  box-shadow: var(--lg-spec);
+}
+
+/* ---------- controlli ---------- */
+
+input, select, textarea {
+  background: var(--lg-glass-2) !important;
+  border: 1px solid var(--lg-edge) !important;
+  border-radius: 16px !important;
+  color: var(--text) !important;
+  box-shadow: var(--lg-spec);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), var(--lg-spec);
+}
+::placeholder { color: color-mix(in srgb, var(--text) 42%, transparent); }
+
+button.primary, .auth-magic-btn {
+  border: 1px solid rgba(255,255,255,.32) !important;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.5) !important;
+}
+button.ghost, .icon-btn {
+  background: var(--lg-glass-2) !important;
+  border: 1px solid var(--lg-edge) !important;
+  border-radius: 14px;
+  color: var(--text) !important;
+  box-shadow: var(--lg-spec);
+}
+button.ghost:hover, .icon-btn:hover { background: var(--lg-glass-strong) !important; }
+button.danger, button.ghost.danger { color: var(--danger) !important; }
+
+.chips > *, .chip, .badge, .next-item, .forecast > * {
+  background: var(--lg-glass-2) !important;
+  border: 1px solid var(--lg-edge) !important;
+  border-radius: 999px;
+  box-shadow: var(--lg-spec);
+}
+.forecast > * { border-radius: 18px; }
+.bar { background: color-mix(in srgb, var(--text) 12%, transparent) !important; border-radius: 999px; }
+.bar > i { background: linear-gradient(90deg, var(--accent), var(--accent-2)) !important; }
+.note { color: var(--muted); }
+.sec { color: var(--muted); letter-spacing: .08em; }
+
+/* checkbox: tocco da 44px anche su mobile */
+input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
+
+/* ---------- assistente: chat liquida ---------- */
+
+.ai-panel { box-shadow: var(--lg-depth-3), var(--lg-spec) !important; }
+.ai-badge, .ai-head .ai-badge {
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+  border-radius: 50%;
+  animation: lg-orb 5s ease-in-out infinite;   /* stato "vivo" dell'IA */
+}
+@keyframes lg-orb {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-3px) scale(1.06); }
+}
+
+.ai-msg.me {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 55%, transparent),
+    color-mix(in srgb, var(--accent) 34%, transparent)) !important;
+  border: 1px solid rgba(255,255,255,.26);
+  border-radius: 22px 22px 6px 22px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
+}
+.ai-msg.bot {
+  background: var(--lg-glass-strong) !important;
+  border: 1px solid var(--lg-edge) !important;
+  border-radius: 22px 22px 22px 6px;
+  box-shadow: var(--lg-spec);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.ai-context { background: var(--lg-glass-2) !important; border-color: var(--lg-edge) !important; }
+.ai-chip {
+  background: var(--lg-glass-strong) !important;
+  border: 1px solid var(--lg-edge) !important;
+  color: var(--text) !important;
+  box-shadow: var(--lg-spec);
+}
+.ai-foot > .row {
+  align-items: center; gap: 10px;
+  padding: 6px 6px 6px 6px;
+  border-radius: 999px;
+  background: var(--lg-glass-2);
+  border: 1px solid var(--lg-edge);
+  box-shadow: var(--lg-spec);
+}
+.ai-foot > .row input { background: transparent !important; border: 0 !important; box-shadow: none; padding-left: 14px; }
+.ai-foot > .row button.primary { border-radius: 999px; padding: 11px 20px; }
+
+#btn-ai-fab {
+  border: 1px solid rgba(255,255,255,.34) !important;
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--accent) 50%, transparent), inset 0 1px 0 rgba(255,255,255,.5) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* ---------- mobile: il dock scende in basso ---------- */
+
+@media (max-width: 759px) {
+  .topbar { margin: 8px; border-radius: 22px; }
+  .tabs {
+    position: fixed; top: auto;
+    left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom));
+    margin: 0; padding: 8px 10px;
+    justify-content: space-around;
+    box-shadow: var(--lg-depth-3), var(--lg-spec) !important;
+  }
+  .tabs button em { font-size: 10.5px; }
+  .tabs button:hover { transform: none; }        /* niente magnify al tocco */
+  main { padding-bottom: 110px; }
+  #btn-ai-fab { bottom: calc(104px + env(safe-area-inset-bottom)); }
+  :root { --radius: 22px; }
+}
+
+/* ---------- accessibilità e fallback ---------- */
+
+/* Firefox senza backdrop-filter: vetro opaco, mai testo su foto nuda */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar, .tabs, .panel, .card, .modal-box, .ai-panel, .cards-grid > * {
+    background: color-mix(in srgb, var(--lg-glass) 100%, #fff 55%) !important;
+  }
+  html[data-theme="dark"] .topbar,
+  html[data-theme="dark"] .tabs,
+  html[data-theme="dark"] .panel,
+  html[data-theme="dark"] .card,
+  html[data-theme="dark"] .modal-box,
+  html[data-theme="dark"] .ai-panel,
+  html[data-theme="dark"] .cards-grid > * {
+    background: #16203a !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .panel, .cards-grid > *, .tabs button { transition: none; transform: none !important; }
+  .ai-badge { animation: none; }
+}
+
+/* backdrop-filter è costoso: su schermi piccoli riduci il raggio */
+@media (max-width: 480px) {
+  .panel, .card, .cards-grid > * {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+}
