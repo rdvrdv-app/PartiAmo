@@ -152,24 +152,34 @@ Tutto **client-side**, nessun upload a servizi esterni:
 
 ---
 
-## ✦ Assistente virtuale — stato attuale
+## ✦ Assistente virtuale — completo, manca solo la chiave
 
-**Frontend completo, backend assente.** Il tab Assistente, la card
-suggerimenti in Dashboard e il pulsante flottante sono già implementati
-(`js/assistant.js`): raccolgono il contesto del viaggio (destinazione,
-date, meteo, checklist, bagagli, itinerario — **mai** file o note del
-Vault, solo tipo/scadenza documenti) e lo inviano a `POST /api/assistant`.
+Il tab Assistente, la card suggerimenti in Dashboard e il pulsante
+flottante (`js/assistant.js`) raccolgono il contesto del viaggio
+(destinazione, date, meteo, checklist, bagagli, itinerario — **mai** file
+o note del Vault, solo tipo/scadenza documenti) e lo inviano a
+`POST /api/assistant`.
 
-**`server.js` è un semplice server di file statici**: non ha alcun
-instradamento di richieste, quindi quell'endpoint non esiste ancora e ogni
-domanda all'assistente fallisce con "Non riesco a contattare l'assistente".
-La card suggerimenti in Dashboard invece funziona già oggi, perché è
-calcolata localmente senza rete.
+**L'endpoint ora esiste**, in `server.js` (aggiunto senza dipendenze npm,
+solo `http`/`fetch` nativi di Node 18+): inoltra i messaggi a
+`api.anthropic.com/v1/messages` (modello `claude-opus-5`) con un system
+prompt che include il contesto del viaggio, limita lo storico alle ultime
+12 battute, e applica un **rate limit di 20 richieste/10 minuti per IP**
+per proteggere l'endpoint pubblico. Verificato end-to-end con Playwright:
+senza chiave configurata la UI mostra correttamente "Assistente non
+configurato" invece di rompersi; con una chiave (anche non valida) la
+richiesta raggiunge davvero Anthropic e propaga l'errore reale.
 
-Per completarlo serve: un endpoint `/api/assistant` in `server.js` che
-inoltri i messaggi all'API di Anthropic con una `ANTHROPIC_API_KEY` lato
-server (mai nel codice client), più eventualmente un rate limit prima di
-esporre il sito pubblicamente. Argomento della prossima fase di lavoro.
+**Per attivarlo in produzione**: imposta la variabile d'ambiente
+`ANTHROPIC_API_KEY` dove gira `node server.js` (mai nel codice, mai nel
+repo — `.env` è già in `.gitignore`). Senza questa variabile l'endpoint
+risponde 500 con un messaggio chiaro, e la card suggerimenti in Dashboard
+continua a funzionare comunque perché calcolata localmente senza rete.
+
+⚠️ **Nota**: `avvia.bat` lancia oggi `python -m http.server`, non
+`node server.js` — quindi il launcher Windows attuale non serve
+`/api/assistant`. Per testare l'assistente in locale serve avviare
+`node server.js` direttamente (o aggiornare `avvia.bat`, da valutare).
 
 ---
 

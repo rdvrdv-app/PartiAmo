@@ -4,3 +4,6 @@ scratch/
 node_modules/
 .DS_Store
 *.log
+
+# Chiavi/segreti locali (ANTHROPIC_API_KEY per l'assistente virtuale)
+.env
