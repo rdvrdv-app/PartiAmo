@@ -10,7 +10,8 @@ const Supa = (function () {
   const STORAGE_ANON_KEY = "partiamo_supa_key";
 
   const DEFAULT_SUPABASE_URL = "https://jobclfopbomkuabnbjgr.supabase.co";
-  const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvYmNsZm9wYm9ta3VhYm5iamdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTk1NjAsImV4cCI6MjEwMjAzNTU2MH0.bv83dh3lqczNPqp6MzUEfGb3QiuBzB-F-2odumqaEEM";
+  // Chiave pubblicabile (nuovo formato Supabase, sostituisce il vecchio anon key JWT).
+  const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_Qtdxm3YuMoyvI3nzYJfeUQ_ViQcUNy8";
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
