@@ -39,6 +39,7 @@ html[data-theme="dark"] {
 
 * { box-sizing: border-box; }
 
+html { overflow-x: hidden; }
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -48,6 +49,7 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
 }
 
 h2, h3 { margin: 0 0 10px; letter-spacing: -.02em; }
@@ -65,8 +67,16 @@ a { color: var(--accent); }
 }
 .brand { font-size: 19px; font-weight: 800; letter-spacing: -.03em; display: flex; gap: 8px; align-items: center; }
 .brand b { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.top-actions { display: flex; align-items: center; gap: 10px; }
-.top-dest { font-size: 12px; color: var(--muted); max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* min-width: 0 è essenziale: senza, questo contenitore flex annidato non si
+   restringe mai sotto la somma delle larghezze naturali dei figli, e quando
+   destinazione + Condividi + account non ci stanno tutti spinge il pulsante
+   account fuori dallo schermo invece di troncarlo o andare a capo. */
+.top-actions { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1; }
+.top-dest { font-size: 12px; color: var(--muted); max-width: 32vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
+.top-actions button.ghost.small {
+  max-width: 32vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; flex-shrink: 1;
+}
 .icon-btn {
   width: 36px; height: 36px; min-width: 36px; min-height: 36px;
   border-radius: 12px; font-size: 16px; line-height: 1; padding: 0;
@@ -186,6 +196,10 @@ label.lbl { display: flex; flex-direction: column; gap: 5px; font-size: 12px; co
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 @media (max-width: 440px) {
+  /* Su schermi stretti la destinazione è già ben visibile nella card in alto
+     nel Dashboard: qui toglierla libera spazio per i pulsanti account/condividi,
+     che altrimenti si riducono a "..." illeggibili. */
+  .top-dest { display: none; }
   .grid-3 { grid-template-columns: 1fr; }
   .row > * { flex: 1 1 100%; }
   .row > button, .row > .btn-file { flex: 1 1 auto; }
