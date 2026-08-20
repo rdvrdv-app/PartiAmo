@@ -66,10 +66,16 @@ html[data-theme="dark"] {
 /* ---------- livello 0: sfondo fotografico + mappa ---------- */
 
 html {
-  /* Stesso fallback di body: se il box di body non copre tutto il
-     viewport reale (safe-area della PWA su iOS), niente bianco sotto. */
-  background: var(--lg-sky) !important;
+  /* Il colore di fondo dell'elemento radice viene propagato all'intera area
+     visibile dal browser, ma solo se è una TINTA PIENA: un gradiente viene
+     invece dimensionato sul box di html, e dove quel box non arriva — la
+     safe-area sotto il dock nella PWA iOS — resta scoperto il bianco.
+     Quindi background-color pieno (la tinta in fondo al gradiente, quella
+     che affiora proprio lì) + background-image per la sfumatura. */
+  background-color: #e8d9c8 !important;
+  background-image: var(--lg-sky) !important;
 }
+html[data-theme="dark"] { background-color: #f0b184 !important; }
 
 body {
   background: var(--lg-sky) !important;
