@@ -283,7 +283,15 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
   box-shadow: var(--lg-spec);
 }
 .ai-foot > .row input { background: transparent !important; border: 0 !important; box-shadow: none; padding-left: 14px; }
-.ai-foot > .row button.primary { border-radius: 999px; padding: 11px 20px; }
+/* Il bottone eredita bordo + ombra diffusa da "button.primary": dentro alla
+   pillola della barra chat si sommavano al bordo/ombra della pillola stessa,
+   creando un doppio contorno sfocato attorno a "Invia". Azzerati entrambi:
+   il pulsante deve leggersi come un unico pezzo della pillola, non un
+   elemento separato che galleggia sopra. */
+.ai-foot > .row button.primary {
+  border-radius: 999px; padding: 11px 20px;
+  border: 0 !important; box-shadow: none !important;
+}
 
 #btn-ai-fab {
   border: 1px solid rgba(255,255,255,.34) !important;
