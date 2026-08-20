@@ -1,6 +1,6 @@
 /* assistant.js — Assistente virtuale PartiAmo.
-   Rende la chat nel tab #tab-assistente, il pannello suggerimenti in dashboard
-   e il pulsante fluttuante. Parla con la Supabase Edge Function "assistant"
+   Rende la chat nel tab #tab-assistente, raggiungibile dal pulsante
+   fluttuante. Parla con la Supabase Edge Function "assistant"
    (Claude lato server, chiave mai esposta al client).
    Nessun dato del Vault viene inviato. */
 
@@ -10,7 +10,11 @@ const Assistant = (function () {
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  const history = [];
+  // Storico persistito in Store.s.assistantHistory (localStorage, come il resto
+  // dello stato locale): resta visibile a reload/riapertura dell'app, mai
+  // sincronizzato su Supabase (solo dati di viaggio lo sono).
+  const MAX_HISTORY = 60;
+  const history = () => Store.s.assistantHistory || (Store.s.assistantHistory = []);
   let busy = false;
 
   /* ---------- contesto: solo dati di viaggio, mai allegati o documenti ---------- */
@@ -53,8 +57,15 @@ const Assistant = (function () {
     return base ? base.replace(/\/$/, "") + "/functions/v1/assistant" : "/api/assistant";
   }
 
+  function pushHistory(msg) {
+    const h = history();
+    h.push(msg);
+    while (h.length > MAX_HISTORY) h.shift();
+    Store.save();
+  }
+
   async function ask(text) {
-    history.push({ role: "user", content: text });
+    pushHistory({ role: "user", content: text });
     // Le Edge Function di Supabase richiedono un header di autorizzazione:
     // basta la chiave anon pubblica, non serve un utente loggato.
     const anonKey = (typeof Supa !== "undefined" && Supa.getAnonKey) ? Supa.getAnonKey() : "";
@@ -66,11 +77,11 @@ const Assistant = (function () {
     const r = await fetch(endpointUrl(), {
       method: "POST",
       headers,
-      body: JSON.stringify({ messages: history, context: context() })
+      body: JSON.stringify({ messages: history(), context: context() })
     });
     const data = await r.json().catch(() => ({ error: "Risposta non valida dal server" }));
     if (!r.ok || data.error) throw new Error(data.error || ("Errore " + r.status));
-    history.push({ role: "assistant", content: data.text });
+    pushHistory({ role: "assistant", content: data.text });
     return data.text;
   }
 
@@ -86,7 +97,7 @@ const Assistant = (function () {
     const head = t.dest
       ? `<div class="ai-context">Contesto: ${esc(t.dest)} · ${esc(t.start || "—")} → ${esc(t.end || "—")}</div>`
       : `<div class="ai-context">Nessun viaggio configurato: compila il tab Viaggio per risposte precise.</div>`;
-    box.innerHTML = head + history.map(m => bubble(m.role === "user" ? "user" : "bot", m.content)).join("")
+    box.innerHTML = head + history().map(m => bubble(m.role === "user" ? "user" : "bot", m.content)).join("")
       + (busy ? `<div class="ai-msg bot ai-typing"><i></i><i></i><i></i></div>` : "");
     box.scrollTop = box.scrollHeight;
   }
@@ -100,30 +111,12 @@ const Assistant = (function () {
     try {
       await ask(text);
     } catch (e) {
-      history.push({ role: "assistant", content: "Non riesco a contattare l'assistente: " + e.message });
+      pushHistory({ role: "assistant", content: "Non riesco a contattare l'assistente: " + e.message });
       if (typeof UI !== "undefined" && UI.toast) UI.toast("⚠️ Assistente non disponibile");
     } finally {
       busy = false;
       renderThread();
     }
-  }
-
-  /* Suggerimenti in dashboard: calcolati in locale, nessuna chiamata di rete. */
-  function renderSuggestions() {
-    const box = $("#ai-suggestions");
-    if (!box) return;
-    const s = Store.s, t = s.trip || {}, w = s.weather;
-    const items = [];
-    if (w && w.rainDays > 0) items.push(`🌧️ ${w.rainDays} giorn${w.rainDays === 1 ? "o" : "i"} di pioggia previsti: sposta le tappe all'aperto`);
-    if (w && (w.tmax - w.tmin) >= 10) items.push(`🌡️ Escursione termica ${w.tmax - w.tmin}°C: vestizione a cipolla`);
-    const list = s.checklist || [];
-    if (list.length) items.push(`✅ Checklist al ${Math.round(list.filter(i => i.done).length / list.length * 100)}%: ${list.filter(i => !i.done).length} voci da spuntare`);
-    (s.docs || []).forEach(d => {
-      if (d.type === "passaporto" && d.expiry) items.push(`🛂 Passaporto in scadenza il ${d.expiry.split("-").reverse().join("/")}`);
-    });
-    if (!items.length) items.push("Configura il viaggio per ricevere suggerimenti su meteo, bagagli e checklist.");
-    box.innerHTML = `<ul class="next-commitments-list">` + items.slice(0, 4)
-      .map(i => `<li class="next-item"><span>${esc(i)}</span><span class="arr">→</span></li>`).join("") + `</ul>`;
   }
 
   function init() {
@@ -134,15 +127,14 @@ const Assistant = (function () {
     document.addEventListener("click", e => {
       const chip = e.target.closest("[data-ai-ask]");
       if (chip) { if (typeof UI !== "undefined") UI.go("assistente"); send(chip.dataset.aiAsk); return; }
-      if (e.target.closest("#btn-ai-fab") || e.target.closest("#btn-ai-open")) {
+      if (e.target.closest("#btn-ai-fab")) {
         if (typeof UI !== "undefined") UI.go("assistente");
       }
     });
     renderThread();
-    renderSuggestions();
   }
 
   document.addEventListener("DOMContentLoaded", init);
 
-  return { ask, send, renderSuggestions, renderThread, history };
+  return { ask, send, renderThread, history };
 })();

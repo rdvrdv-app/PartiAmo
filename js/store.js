@@ -18,6 +18,7 @@ const Store = (function () {
       contacts: [],
       pois: [],
       itinerary: {},
+      assistantHistory: [],
       // Id delle schede cancellate in locale, in attesa di essere rimosse
       // anche dal cloud: propagare le cancellazioni per id evita di toccare
       // ciò che gli altri partecipanti hanno aggiunto nel frattempo.
