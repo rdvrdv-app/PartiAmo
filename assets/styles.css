@@ -531,7 +531,7 @@ dialog.modal[open] {
 }
 
 .ai-panel { display: flex; flex-direction: column; height: min(70vh, 620px); padding: 0; overflow: hidden; }
-.ai-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.ai-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .ai-head h3 { margin: 0; font-size: 16px; }
 .ai-head .sub { font-size: 12px; color: var(--muted); }
 

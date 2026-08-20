@@ -102,6 +102,14 @@ const Assistant = (function () {
     box.scrollTop = box.scrollHeight;
   }
 
+  function clearHistory() {
+    if (busy) return;
+    Store.s.assistantHistory = [];
+    Store.save();
+    renderThread();
+    if (typeof UI !== "undefined" && UI.toast) UI.toast("Conversazione cancellata");
+  }
+
   async function send(text) {
     if (busy || !text.trim()) return;
     busy = true;
@@ -130,6 +138,7 @@ const Assistant = (function () {
       if (e.target.closest("#btn-ai-fab")) {
         if (typeof UI !== "undefined") UI.go("assistente");
       }
+      if (e.target.closest("#btn-ai-clear")) clearHistory();
     });
     renderThread();
   }
