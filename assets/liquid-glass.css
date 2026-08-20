@@ -78,7 +78,15 @@ html {
 html[data-theme="dark"] { background-color: #f0b184 !important; }
 
 body {
-  background: var(--lg-sky) !important;
+  /* Trasparente e non solo "senza background qui": styles.css imposta
+     comunque un suo sfondo (var(--bg) + var(--bg-grad)) su body, quindi
+     senza "!important" resterebbe quello. I livelli fissi qui sotto
+     (::before/::after) coprono già tutto il viewport in modo uniforme.
+     Un colore opaco su body lo coprirebbe SOLO nell'altezza del suo
+     contenuto reale (spesso più corta del viewport, specie a schermate
+     vuote) — sotto quel punto i livelli sfocati/pattern tornerebbero
+     visibili senza essere coperti, creando una cucitura netta ben visibile. */
+  background: transparent !important;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
@@ -322,7 +330,11 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
     left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom));
     margin: 0; padding: 8px 10px;
     justify-content: space-around;
-    box-shadow: var(--lg-depth-3), var(--lg-spec) !important;
+    /* depth-3 (pensata per pannelli grandi come .ai-panel) su una barretta
+       sottile e flottante lascia un alone scuro ben visibile sopra il dock,
+       specie su schermate con poco altro contenuto: depth-2, già usata per
+       la stessa barra su desktop, resta "sollevata" senza il vistoso bleed. */
+    box-shadow: var(--lg-depth-2), var(--lg-spec) !important;
   }
   .tabs button em { font-size: 10.5px; }
   .tabs button:hover { transform: none; }        /* niente magnify al tocco */
