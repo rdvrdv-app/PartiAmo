@@ -1947,12 +1947,19 @@ const UI = {
 
           <form data-add-day-act="${iso}" class="col" style="gap:8px; background:var(--surface-2); padding:10px; border-radius:12px; border:1px solid var(--border)">
             <h5 style="margin:0; font-size:12px; text-transform:uppercase; color:var(--muted)">➕ Aggiungi / Modifica attività</h5>
-            ${(s.pois && s.pois.length) ? `
-              <select class="itin-poi-select" aria-label="Seleziona dai POI salvati" style="font-size:13px">
-                <option value="">📍 Scegli dai POI salvati...</option>
-                ${s.pois.map(p => `<option value="${esc(p.name + (p.addr ? " @ " + p.addr : ""))}">${esc(p.name)}${p.addr ? " (" + esc(p.addr) + ")" : ""}</option>`).join("")}
-              </select>
-            ` : ""}
+            ${(() => {
+              // Un POI con giorno assegnato compare solo nel form di quel giorno:
+              // altrimenti lo stesso POI appariva identico come opzione in ogni
+              // giorno, letto dagli utenti come un doppione dell'attività stessa.
+              // I POI senza giorno restano disponibili ovunque, non essendo ancora decisi.
+              const dayPois = (s.pois || []).filter(p => !p.day || p.day === iso);
+              return dayPois.length ? `
+                <select class="itin-poi-select" aria-label="Seleziona dai POI salvati" style="font-size:13px">
+                  <option value="">📍 Scegli dai POI salvati...</option>
+                  ${dayPois.map(p => `<option value="${esc(p.name + (p.addr ? " @ " + p.addr : ""))}">${esc(p.name)}${p.addr ? " (" + esc(p.addr) + ")" : ""}</option>`).join("")}
+                </select>
+              ` : "";
+            })()}
             <div class="row wrap" style="gap:6px">
               <input class="itin-time-input" type="time" aria-label="Orario (opzionale)" title="Orario attività" style="flex:0 0 95px; font-size:13px">
               <input class="itin-text-input" placeholder="Attività @ luogo (es. Visita Castello)" aria-label="Descrizione attività" style="flex:1 1 180px">
