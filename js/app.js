@@ -14,6 +14,7 @@ const UI = {
   /* ---------------- boot ---------------- */
   init() {
     Store.load();
+    this.dedupePois();
     this.initTheme();
     this.fillSelects();
 
@@ -43,7 +44,38 @@ const UI = {
   go(tab) {
     $$("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
     $$(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + tab));
+    // Sul tab della chat il pulsante flottante coprirebbe l'input/Invia: non serve,
+    // ci si è già dentro.
+    const fab = $("#btn-ai-fab");
+    if (fab) fab.classList.toggle("hidden", tab === "assistente");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  },
+
+  /* Rimuove POI identici (stesso nome+indirizzo+giorno+categoria): potevano
+     accumularsi con un doppio tap sul form "Salva POI" prima che il
+     salvataggio precedente finisse. Gli allegati dei doppioni vengono
+     conservati sul superstite, il resto va in tombstone così la
+     cancellazione si propaga anche al cloud al prossimo salvataggio. */
+  dedupePois() {
+    const s = Store.s;
+    if (!s.pois || s.pois.length < 2) return;
+    const seen = new Map();
+    const keep = [];
+    let removed = 0;
+    s.pois.forEach(p => {
+      const key = [p.name, p.addr, p.day, p.cat].map(v => String(v || "").trim().toLowerCase()).join("|");
+      const existing = seen.get(key);
+      if (!existing) {
+        seen.set(key, p);
+        keep.push(p);
+      } else {
+        if (p.files && p.files.length) existing.files = (existing.files || []).concat(p.files);
+        if (!existing.notes && p.notes) existing.notes = p.notes;
+        Store.tombstone("pois", p.id);
+        removed++;
+      }
+    });
+    if (removed) { s.pois = keep; Store.save(); }
   },
 
   toast(msg) {
@@ -1584,7 +1616,13 @@ const UI = {
 
     $("#form-poi").addEventListener("submit", async e => {
       e.preventDefault();
-      const editId = $("#form-poi").dataset.editId;
+      const form = $("#form-poi");
+      // Un doppio tap/invio prima che il primo salvataggio finisca (es. in
+      // attesa del caricamento allegati) creava due POI identici.
+      if (form.dataset.submitting) return;
+      form.dataset.submitting = "1";
+      try {
+      const editId = form.dataset.editId;
       const fl = $("#poi-media").files;
       let newFiles = [];
       if (fl.length) newFiles = await Media.saveAll(fl);
@@ -1619,6 +1657,9 @@ const UI = {
       if (countEl) countEl.textContent = "";
       this.renderContacts();
       this.renderItinerary();
+      } finally {
+        delete form.dataset.submitting;
+      }
     });
 
     $("#poi-media").addEventListener("change", e => {
