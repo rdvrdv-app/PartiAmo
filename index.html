@@ -30,8 +30,8 @@
      aggiunta alla Home) può continuare a servire da cache il foglio di
      stile vecchio per giorni anche dopo un deploy. Va incrementata ad ogni
      modifica rilevante a styles.css/liquid-glass.css. -->
-<link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/liquid-glass.css?v=7">
+<link rel="stylesheet" href="assets/styles.css?v=8">
+<link rel="stylesheet" href="assets/liquid-glass.css?v=8">
 </head>
 <body>
 
@@ -153,7 +153,7 @@
         <span class="ai-badge">✦</span>
         <div style="flex:1 1 160px; min-width:160px">
           <h3>Assistente PartiAmo</h3>
-          <div class="sub" id="ai-status">Legge i dati del tuo viaggio</div>
+          <div class="sub" id="ai-status">Legge i dati del tuo viaggio e, con la tua conferma, può modificarli</div>
         </div>
         <button class="ghost small" id="btn-ai-clear" title="Cancella la conversazione e ricomincia">🗑️ Nuova conversazione</button>
       </div>
@@ -170,13 +170,16 @@
           <input id="ai-input" placeholder="Chiedi qualcosa sul viaggio…" aria-label="Domanda all'assistente" autocomplete="off">
           <button class="primary">Invia</button>
         </form>
-        <p class="note">L'assistente legge solo i dati del viaggio salvati sul dispositivo. I file del Vault non vengono inviati.</p>
+        <p class="note">L'assistente legge solo i dati del viaggio salvati sul dispositivo. I file del Vault non vengono inviati. Le modifiche che propone (POI, itinerario, contatti, checklist) vengono scritte solo dopo la tua conferma.</p>
       </div>
     </div>
 
     <div class="panel">
       <div class="panel-head"><h3>Cosa può fare</h3></div>
       <p class="note">
+        · Aggiungere, modificare o eliminare POI, attività dell'itinerario,
+        contatti e voci della checklist (ti chiede sempre conferma prima
+        di salvare)<br>
         · Riorganizzare l'itinerario in base al meteo<br>
         · Rigenerare la checklist per durata e clima<br>
         · Verificare franchigie e misure dei colli<br>
