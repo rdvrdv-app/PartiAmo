@@ -787,6 +787,15 @@ const UI = {
   },
 
   bindDashboard() {
+    $("#card-dest").addEventListener("click", () => this.go("itinerario"));
+    $("#card-weather").addEventListener("click", e => {
+      // Il bottone "Aggiorna meteo" vive dentro questa stessa card: non deve
+      // anche far scattare la navigazione quando lo si preme.
+      if (e.target.closest("#btn-refresh-weather")) return;
+      this.go("itinerario");
+    });
+    $("#card-checklist").addEventListener("click", () => this.go("checklist"));
+
     $("#d-forecast").addEventListener("click", e => {
       const card = e.target.closest(".fc-day[data-day]");
       if (!card) return;

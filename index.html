@@ -30,8 +30,8 @@
      aggiunta alla Home) può continuare a servire da cache il foglio di
      stile vecchio per giorni anche dopo un deploy. Va incrementata ad ogni
      modifica rilevante a styles.css/liquid-glass.css. -->
-<link rel="stylesheet" href="assets/styles.css?v=6">
-<link rel="stylesheet" href="assets/liquid-glass.css?v=6">
+<link rel="stylesheet" href="assets/styles.css?v=7">
+<link rel="stylesheet" href="assets/liquid-glass.css?v=7">
 </head>
 <body>
 
@@ -66,7 +66,7 @@
 
   <div id="dash-content">
     <div class="cards">
-      <div class="card hero">
+      <div class="card hero clickable-card" id="card-dest" title="Vai all'itinerario">
         <div class="card-label">Destinazione</div>
         <div class="hero-dest" id="d-dest">—</div>
         <div class="hero-sub" id="d-dates">—</div>
@@ -77,13 +77,13 @@
           <div class="hero-sub" id="d-count-sub"></div>
         </div>
       </div>
-      <div class="card">
+      <div class="card clickable-card" id="card-weather" title="Vai all'itinerario">
         <div class="card-label">Meteo previsto</div>
         <div class="big" id="d-temp">—</div>
         <div class="hero-sub" id="d-weather-sub">In attesa dei dati…</div>
         <button class="ghost small" id="btn-refresh-weather">↻ Aggiorna meteo</button>
       </div>
-      <div class="card">
+      <div class="card clickable-card" id="card-checklist" title="Vai alla checklist">
         <div class="card-label">Avanzamento checklist</div>
         <div class="big" id="d-progress">0%</div>
         <div class="bar"><i id="d-bar" style="width:0%"></i></div>
