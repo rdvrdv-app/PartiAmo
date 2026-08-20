@@ -282,15 +282,23 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
   border: 1px solid var(--lg-edge);
   box-shadow: var(--lg-spec);
 }
-.ai-foot > .row input { background: transparent !important; border: 0 !important; box-shadow: none; padding-left: 14px; }
-/* Il bottone eredita bordo + ombra diffusa da "button.primary": dentro alla
-   pillola della barra chat si sommavano al bordo/ombra della pillola stessa,
-   creando un doppio contorno sfocato attorno a "Invia". Azzerati entrambi:
-   il pulsante deve leggersi come un unico pezzo della pillola, non un
-   elemento separato che galleggia sopra. */
+/* Dentro alla pillola della barra chat né l'input né il bottone devono
+   avere un contorno proprio: la pillola è già il contenitore visibile.
+   Oltre a sfondo/bordo/ombra va azzerato anche il backdrop-filter ereditato
+   dalla regola generica sugli input: su Safari un elemento con
+   backdrop-filter diventa un livello di composizione a sé e disegna un
+   bordo visibile anche quando sfondo e border sono trasparenti — da qui il
+   doppio contorno sfocato attorno a input e "Invia" che su Chromium non
+   compare. */
+.ai-foot > .row input {
+  background: transparent !important; border: 0 !important;
+  box-shadow: none !important; padding-left: 14px;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
 .ai-foot > .row button.primary {
   border-radius: 999px; padding: 11px 20px;
   border: 0 !important; box-shadow: none !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
 }
 
 #btn-ai-fab {
