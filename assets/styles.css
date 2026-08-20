@@ -567,6 +567,15 @@ dialog.modal[open] {
 }
 .ai-chip:hover { filter: brightness(.97); }
 
+/* La barra di invio resta sempre su una riga sola: campo elastico + bottone a
+   larghezza naturale. Senza questo, sotto i 440px la regola generica
+   ".row > * { flex: 1 1 100% }" manda "Invia" a capo a tutta larghezza e —
+   dentro la pillola di vetro del layer Liquid Glass — il bordo del bottone
+   finisce a filo di quello della pillola, sembrando che ne esca fuori. */
+#form-ai { flex-wrap: nowrap; }
+#form-ai > input { flex: 1 1 auto; min-width: 0; }
+#form-ai > button { flex: 0 0 auto; }
+
 #btn-ai-fab {
   position: fixed; right: 16px; z-index: 45;
   bottom: calc(90px + env(safe-area-inset-bottom));
