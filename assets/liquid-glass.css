@@ -65,6 +65,12 @@ html[data-theme="dark"] {
 
 /* ---------- livello 0: sfondo fotografico + mappa ---------- */
 
+html {
+  /* Stesso fallback di body: se il box di body non copre tutto il
+     viewport reale (safe-area della PWA su iOS), niente bianco sotto. */
+  background: var(--lg-sky) !important;
+}
+
 body {
   background: var(--lg-sky) !important;
   color: var(--text);

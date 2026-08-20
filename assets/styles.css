@@ -39,7 +39,10 @@ html[data-theme="dark"] {
 
 * { box-sizing: border-box; }
 
-html { overflow-x: hidden; }
+/* Sfondo anche su html, non solo su body: se il box di body non arriva
+   fino in fondo al viewport reale (safe-area/home-indicator nella PWA
+   iOS), sotto deve comparire questo colore e non il bianco di default. */
+html { overflow-x: hidden; background: var(--bg); min-height: 100%; }
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
