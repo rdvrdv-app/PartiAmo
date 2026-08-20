@@ -102,11 +102,10 @@ e regola liquidi cabina (100ml/1L) adattata alla presenza di bagaglio in
 stiva. Per mezzi diversi dall'aereo, note specifiche al posto delle
 franchigie.
 
-### ✦ Assistente — completo ma solo lettura, la scrittura è da costruire
+### ✦ Assistente — lettura e scrittura (con conferma) su POI, itinerario, contatti, checklist
 Raggiungibile solo dal pulsante flottante `#btn-ai-fab` (si nasconde da
 solo quando sei già sul tab Assistente, per non coprire l'input/Invia).
-Vedi sezione dedicata più sotto e "Prossimo sviluppo" in fondo al
-documento.
+Vedi sezione dedicata più sotto.
 
 ---
 
@@ -205,26 +204,53 @@ Tutto **client-side**, nessun upload a servizi esterni:
 
 ---
 
-## ✦ Assistente virtuale — completo ma di sola lettura, backend su Supabase
+## ✦ Assistente virtuale — lettura e scrittura, backend su Supabase
 
 Il tab Assistente (raggiungibile solo dal pulsante flottante
 `#btn-ai-fab`, niente bottone in nav) e `js/assistant.js` raccolgono il
 contesto del viaggio (destinazione, date, meteo, checklist, bagagli,
-itinerario, POI — **mai** file o note del Vault, solo tipo/scadenza
-documenti) e chiamano direttamente una **Supabase Edge Function**,
-`supabase/functions/assistant/index.ts` (Deno). Architettura scelta
-deliberatamente per non dover gestire un server Node separato: il
+itinerario, POI, contatti — **mai** file o note del Vault, solo
+tipo/scadenza documenti) e chiamano direttamente una **Supabase Edge
+Function**, `supabase/functions/assistant/index.ts` (Deno). Architettura
+scelta deliberatamente per non dover gestire un server Node separato: il
 frontend statico vive su GitHub (Pages), il backend è una function
 serverless nello stesso progetto Supabase già usato per auth e dati.
 
-**È di sola lettura**: legge il contesto e risponde solo con **testo** in
-chat (`data.text`, mostrato come bolla — vedi `ask()`/`pushHistory()` in
-`js/assistant.js`). Non c'è nessun meccanismo di tool-use/function-calling
-lato Edge Function, né alcun punto in cui il client scriva la risposta
-dell'assistente nello stato (`Store.s.itinerary`/`Store.s.pois`/ecc.):
-quando "riorganizza le tappe" scrive solo un consiglio testuale, l'utente
-deve applicarlo a mano. Vedi "Prossimo sviluppo" in fondo per il piano di
-darle capacità di scrittura.
+**Lettura e scrittura, sempre con conferma esplicita**: oltre a rispondere
+a parole (`data.text`, mostrato come bolla), l'assistente può proporre
+modifiche in QUATTRO e sole categorie — **POI** (`Store.s.pois`),
+**attività dell'itinerario** (`Store.s.itinerary`), **contatti**
+(`Store.s.contacts`), **voci della checklist** (`Store.s.checklist`).
+Esplicitamente fuori scope, mai toccati: documenti del Vault, config del
+viaggio (`Store.s.trip`), bagagli (`Store.s.bags`), account/condivisione.
+
+- **Lato Edge Function**: la chiamata a `/v1/messages` passa un set di 12
+  `tools` (schema JSON — `add_poi`/`edit_poi`/`delete_poi`, stesso terzetto
+  per `_contact`, `_itinerary_activity`, `_checklist_item`). Claude decide
+  da solo se rispondere solo a parole o proporre azioni (`tool_choice`
+  default "auto"); i blocchi `tool_use` della risposta vengono estratti e
+  restituiti al client come `actions: [{tool, input}]` insieme al testo —
+  la function non li esegue mai, non ha accesso allo stato locale del
+  dispositivo (vive solo Supabase-side).
+- **Lato client** (`js/assistant.js`): ogni azione ricevuta viene **sempre
+  rivalidata** prima di poter anche solo comparire in chat (mai fidarsi
+  ciecamente dell'output del modello) — tool tra i 12 consentiti, id
+  esistente per modifica/cancellazione, campi obbligatori per
+  un'aggiunta, enum validi (categoria POI, tipo contatto, fascia oraria,
+  categoria checklist). Le azioni valide compaiono come riepilogo in chat
+  (bolla bot riusata come contenitore, stile "Liquid Glass" automatico)
+  con due bottoni "Annulla"/"✅ Applica": **nessuna scrittura su `Store.s`
+  avviene prima del click su Applica**. Alla conferma ogni azione viene
+  *rivalidata una seconda volta* (lo stato può essere cambiato nel
+  frattempo) e poi eseguita con lo stesso pattern usato altrove — id via
+  `Store.uid()`/`Store.uuid()`, `Store.tombstone()` per le cancellazioni
+  di POI/contatti/itinerario (la checklist non ha tombstone, resta privata
+  per utente come il resto del suo storico), `Store.save()`, seguito da
+  `UI.renderContacts()`/`renderItinerary()`/`renderChecklist()`/
+  `renderDashboard()`.
+- Il contesto inviato a Claude ora include l'**id** di ogni POI/contatto/
+  voce checklist (necessario per riferirsi a una voce esistente in modo
+  univoco, mai per nome) e i contatti (prima assenti dal contesto).
 
 **Storico persistito**: `Store.s.assistantHistory` (nuovo campo in
 `blank()`, gestito da `load()`/`save()` come il resto dello stato locale),
@@ -261,59 +287,6 @@ login, come il resto dell'app (dati letti da `localStorage`).
 locale (nessuna logica dell'assistente lì) — coerente con l'architettura
 "tutto tra GitHub e Supabase", nessun host Node da mantenere in
 produzione.
-
----
-
-## Prossimo sviluppo: assistente con capacità di scrittura (POI, itinerario, contatti, checklist)
-
-Richiesta dell'utente: dare all'assistente la possibilità di
-**aggiungere, modificare ed eliminare** dati in queste e SOLO queste
-quattro categorie:
-- **POI** (`Store.s.pois`)
-- **Attività dell'itinerario giorno per giorno** (`Store.s.itinerary`)
-- **Contatti** (`Store.s.contacts`)
-- **Voci della checklist** (`Store.s.checklist`)
-
-Esplicitamente **fuori scope** (l'assistente non deve poter toccare):
-dati del Vault (documenti, come già oggi non li legge nemmeno), config
-del viaggio (`Store.s.trip`), bagagli (`Store.s.bags`), account/
-condivisione.
-
-Stato di partenza: oggi l'assistente è **di sola lettura** (vedi sezione
-sopra) — legge il contesto e risponde solo con testo, nessun
-tool-use/function-calling lato Claude, nessun punto nel client che scriva
-la sua risposta nello stato.
-
-Punti da affrontare (non ancora progettati nel dettaglio):
-1. **Tool-use lato Edge Function**: `supabase/functions/assistant/
-   index.ts` oggi fa una chiamata "semplice" a `/v1/messages` (solo
-   `system`+`messages`). Serve passare un set di `tools` (schema JSON)
-   che coprano le operazioni consentite sulle quattro categorie (es.
-   aggiungi/modifica/elimina POI, aggiungi/modifica/elimina attività di
-   un giorno, aggiungi/modifica/elimina contatto, spunta/aggiungi/rimuovi
-   voce checklist) e gestire il flusso `tool_use`/`tool_result` di
-   Claude, restituendo al client le azioni proposte (non eseguirle lato
-   server: l'Edge Function non ha accesso allo stato locale del
-   dispositivo, vive solo Supabase-side).
-2. **Esecuzione lato client**: `js/assistant.js` deve interpretare le
-   azioni proposte e applicarle a `Store.s.*` con lo stesso pattern già
-   usato altrove (id via `Store.uid()`/`Store.uuid()`, `Store.save()`,
-   `Store.tombstone()` per le cancellazioni, `this.renderContacts()`/
-   `renderItinerary()`/`renderChecklist()`/`renderDashboard()` per
-   aggiornare la UI).
-3. **Conferma esplicita prima di applicare**: come promesso all'utente,
-   l'assistente non deve riscrivere silenziosamente i dati. Serve un
-   passaggio di revisione/conferma (es. mostrare in chat un riepilogo
-   delle modifiche proposte con un bottone "Applica"/"Annulla") prima che
-   tocchino `Store.s`.
-4. **Confini di sicurezza**: validare lato client che le azioni ricevute
-   riguardino solo le quattro categorie consentite e abbiano una forma
-   valida (es. id esistente per una modifica/cancellazione, campi
-   obbligatori per un'aggiunta) prima di eseguirle — non fidarsi
-   ciecamente dell'output del modello.
-5. **Test end-to-end con Playwright** per ogni tipo di azione (add/edit/
-   delete × 4 categorie), oltre alla verifica visiva già in uso in
-   questo progetto.
 
 ---
 
