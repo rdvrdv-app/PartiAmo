@@ -26,8 +26,12 @@
 <title>PartiAmo — Assistente di Viaggio</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://jobclfopbomkuabnbjgr.supabase.co" crossorigin>
-<link rel="stylesheet" href="assets/styles.css">
-<link rel="stylesheet" href="assets/liquid-glass.css">
+<!-- Query string di versione sui CSS: senza, un iPhone (soprattutto la PWA
+     aggiunta alla Home) può continuare a servire da cache il foglio di
+     stile vecchio per giorni anche dopo un deploy. Va incrementata ad ogni
+     modifica rilevante a styles.css/liquid-glass.css. -->
+<link rel="stylesheet" href="assets/styles.css?v=3">
+<link rel="stylesheet" href="assets/liquid-glass.css?v=3">
 </head>
 <body>
 
