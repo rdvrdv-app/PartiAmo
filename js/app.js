@@ -2144,6 +2144,52 @@ const UI = {
         }
       }
     };
+
+    this.renderItinerarySnapshots();
+  },
+
+  /* ---------------- versioni salvate dell'itinerario ---------------- */
+  renderItinerarySnapshots() {
+    const box = $("#itin-snapshots");
+    if (!box) return;
+    const snaps = Store.s.itinerarySnapshots || [null, null, null];
+
+    box.innerHTML = snaps.map((snap, i) => `
+      <div class="row wrap" style="gap:8px; background:var(--surface-2); padding:10px 12px; border-radius:12px; border:1px solid var(--border)">
+        <div style="flex:1 1 160px">
+          <b>Versione ${i + 1}</b>
+          <div class="note" style="margin:2px 0 0">${snap ? "Salvata il " + esc(new Date(snap.savedAt).toLocaleString("it-IT")) : "Vuota"}</div>
+        </div>
+        <button type="button" class="ghost small" data-snap-save="${i}">💾 Salva qui</button>
+        <button type="button" class="ghost small" data-snap-restore="${i}" ${snap ? "" : "disabled"}>↩️ Ripristina</button>
+      </div>`).join("");
+
+    box.onclick = e => {
+      const saveBtn = e.target.closest("[data-snap-save]");
+      if (saveBtn) {
+        const i = +saveBtn.dataset.snapSave;
+        const snaps2 = Store.s.itinerarySnapshots;
+        const overwriting = !!snaps2[i];
+        if (overwriting && !confirm(`Sovrascrivere la Versione ${i + 1} con l'itinerario attuale?`)) return;
+        snaps2[i] = { savedAt: new Date().toISOString(), itinerary: JSON.parse(JSON.stringify(Store.s.itinerary)) };
+        Store.save();
+        this.renderItinerarySnapshots();
+        this.toast(`Itinerario salvato come Versione ${i + 1}`);
+        return;
+      }
+      const restoreBtn = e.target.closest("[data-snap-restore]");
+      if (restoreBtn) {
+        const i = +restoreBtn.dataset.snapRestore;
+        const snap = Store.s.itinerarySnapshots[i];
+        if (!snap) return;
+        if (!confirm(`Ripristinare la Versione ${i + 1}? L'itinerario attuale non salvato andrà perso.`)) return;
+        Store.s.itinerary = JSON.parse(JSON.stringify(snap.itinerary));
+        Store.save();
+        this.renderItinerary();
+        this.renderDashboard();
+        this.toast(`Versione ${i + 1} ripristinata`);
+      }
+    };
   }
 };
 

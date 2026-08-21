@@ -18,6 +18,10 @@ const Store = (function () {
       contacts: [],
       pois: [],
       itinerary: {},
+      // 3 slot per salvare/ripristinare versioni dell'itinerario (mai
+      // sincronizzati sul cloud, come assistantHistory: pushTrip() legge
+      // solo trip/pois/contacts/itinerary, questo campo resta locale).
+      itinerarySnapshots: [null, null, null],
       assistantHistory: [],
       // Id delle schede cancellate in locale, in attesa di essere rimosse
       // anche dal cloud: propagare le cancellazioni per id evita di toccare
