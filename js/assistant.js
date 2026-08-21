@@ -350,6 +350,10 @@ const Assistant = (function () {
 
   async function ask(text) {
     pushHistory({ role: "user", content: text });
+    // Senza questo la domanda appena scritta resta invisibile fino a quando
+    // non arriva l'intera risposta di rete: compare in chat solo insieme
+    // alla risposta, invece che subito dopo l'invio.
+    renderThread();
     // Le Edge Function di Supabase richiedono un header di autorizzazione:
     // basta la chiave anon pubblica, non serve un utente loggato.
     const anonKey = (typeof Supa !== "undefined" && Supa.getAnonKey) ? Supa.getAnonKey() : "";
