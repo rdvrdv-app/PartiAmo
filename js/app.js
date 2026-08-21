@@ -1045,8 +1045,21 @@ const UI = {
 
     const uniqueItems = Array.from(uniqueMap.values());
 
+    // Anteprima limitata a poche voci, ma senza far sparire in silenzio
+    // l'ultimo giorno del viaggio: con più di 8 impegni nei giorni precedenti
+    // (facile con qualche POI a giorno) il taglio secco arrivava solo al
+    // penultimo/terzultimo giorno invece che fino alla fine del viaggio.
+    const NEXT_CAP = 8;
+    let visibleItems = uniqueItems.slice(0, NEXT_CAP);
+    if (t.end) {
+      const lastDayItems = uniqueItems.filter(i => i.date === t.end);
+      if (lastDayItems.length && !visibleItems.some(i => i.date === t.end)) {
+        visibleItems = visibleItems.slice(0, Math.max(0, NEXT_CAP - lastDayItems.length)).concat(lastDayItems);
+      }
+    }
+
     if (uniqueItems.length) {
-      $("#d-next").innerHTML = `<ul class="next-commitments-list">${uniqueItems.slice(0, 8).map(i => `
+      $("#d-next").innerHTML = `<ul class="next-commitments-list">${visibleItems.map(i => `
         <li class="next-item" data-tab="${i.tab}" ${i.targetId ? `data-target-id="${i.targetId}"` : ""} ${i.day ? `data-day="${i.day}"` : ""}>
           <span>${i.html}</span> <span class="arr">→</span>
         </li>`).join("")}</ul>`;
