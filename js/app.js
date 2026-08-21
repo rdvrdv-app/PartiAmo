@@ -1045,18 +1045,22 @@ const UI = {
 
     const uniqueItems = Array.from(uniqueMap.values());
 
-    // Anteprima limitata a poche voci, ma senza far sparire in silenzio
-    // l'ultimo giorno del viaggio: con più di 8 impegni nei giorni precedenti
-    // (facile con qualche POI a giorno) il taglio secco arrivava solo al
-    // penultimo/terzultimo giorno invece che fino alla fine del viaggio.
+    // Anteprima con un numero limitato di voci in dettaglio, ma senza far
+    // sparire in silenzio un giorno intero del viaggio: con più di 8 impegni
+    // nei primi giorni (facile con qualche POI a giorno) il taglio secco
+    // escludeva del tutto i giorni successivi invece di rappresentarli
+    // comunque. Ogni giorno con almeno un impegno resta visibile con
+    // almeno una voce, anche oltre il taglio.
     const NEXT_CAP = 8;
+    const daysWithItems = [...new Set(uniqueItems.map(i => i.date))];
     let visibleItems = uniqueItems.slice(0, NEXT_CAP);
-    if (t.end) {
-      const lastDayItems = uniqueItems.filter(i => i.date === t.end);
-      if (lastDayItems.length && !visibleItems.some(i => i.date === t.end)) {
-        visibleItems = visibleItems.slice(0, Math.max(0, NEXT_CAP - lastDayItems.length)).concat(lastDayItems);
+    daysWithItems.forEach(day => {
+      if (!visibleItems.some(i => i.date === day)) {
+        const first = uniqueItems.find(i => i.date === day);
+        if (first) visibleItems.push(first);
       }
-    }
+    });
+    visibleItems.sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.time || "99:99").localeCompare(b.time || "99:99"));
 
     if (uniqueItems.length) {
       $("#d-next").innerHTML = `<ul class="next-commitments-list">${visibleItems.map(i => `
