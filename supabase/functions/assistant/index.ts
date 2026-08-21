@@ -46,7 +46,17 @@ voce esistente usa l'id esatto presente nel contesto del viaggio (mai inventarlo
 non riesci a capire con certezza a quale voce l'utente si riferisce, chiedi un chiarimento invece di
 indovinare. Questi strumenti NON coprono e non vanno mai usati per: documenti del Vault, configurazione
 del viaggio (destinazione, date, tariffa, mezzo di trasporto...), bagagli o account/condivisione — per
-richieste su questi temi spiega che da qui non puoi modificarli.`;
+richieste su questi temi spiega che da qui non puoi modificarli.
+
+POI UTILI, NON SOLO UN NOME — quando aggiungi o modifichi un POI, valorizza sempre "addr" con
+l'indirizzo o il luogo se lo conosci o riesci a dedurlo dal nome e dalla destinazione del viaggio (mai
+inventare un indirizzo che non conosci: in quel caso lascialo vuoto), e usa "notes" per informazioni
+pratiche già note (orari, prezzo, se serve prenotazione, note dell'utente) — un POI con solo il nome è
+poco utile. Se il luogo è un'attività prenotabile con un riferimento di contatto (una struttura, un
+ristorante con prenotazione, un trasporto con un numero/riferimento) e l'utente ti fornisce quel
+riferimento (telefono, email, nome dell'attività), proponi ANCHE un contatto (add_contact)
+corrispondente, oltre al POI — sono due voci distinte e complementari (il POI è il luogo da visitare, il
+contatto è per chiamare o prenotare), non serve scegliere solo una delle due.`;
 
 const POI_CATS = ["visita", "cibo", "trasporto", "shopping", "altro"];
 const CONTACT_KINDS = ["struttura", "emergenza", "trasporto", "ristorante", "altro"];
@@ -56,15 +66,15 @@ const ITINERARY_SLOTS = ["mattina", "pranzo", "pomeriggio", "cena", "serata", "g
 const TOOLS = [
   {
     name: "add_poi",
-    description: "Aggiunge un nuovo punto di interesse (POI) da visitare durante il viaggio.",
+    description: "Aggiunge un nuovo punto di interesse (POI) da visitare durante il viaggio. Valorizza sempre addr e notes quando le informazioni sono note: un POI con solo il nome è poco utile.",
     input_schema: {
       type: "object",
       properties: {
         name: { type: "string", description: "Nome del POI (obbligatorio)." },
-        addr: { type: "string", description: "Indirizzo o luogo, se noto." },
+        addr: { type: "string", description: "Indirizzo o luogo: valorizzalo sempre se lo conosci, mai inventarlo." },
         cat: { type: "string", enum: POI_CATS, description: "Categoria del POI." },
         day: { type: "string", description: "Giorno previsto, formato YYYY-MM-DD, se noto." },
-        notes: { type: "string", description: "Note libere (orari, prezzo, prenotazione...)." },
+        notes: { type: "string", description: "Info pratiche già note: orari, prezzo, se serve prenotazione." },
       },
       required: ["name"],
     },
