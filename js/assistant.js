@@ -291,7 +291,9 @@ const Assistant = (function () {
       const input = (a.input && typeof a.input === "object" && !Array.isArray(a.input)) ? a.input : {};
       const err = spec.validate(input);
       if (err) { console.warn(`Assistente: azione "${a.tool}" scartata (${err})`, input); continue; }
-      out.push({ tool: a.tool, input, summary: spec.summary(input) });
+      // Selezionata di default: l'utente può togliere la spunta alle singole
+      // voci prima di applicare, non è tutto-o-niente.
+      out.push({ tool: a.tool, input, summary: spec.summary(input), selected: true });
     }
     return out;
   }
@@ -376,17 +378,26 @@ const Assistant = (function () {
   function proposalCard(msg, idx) {
     if (!msg.actions || !msg.actions.length) return "";
     if (msg.status === "applied") {
-      return `<div class="ai-msg bot ai-proposal ai-proposal-done"><div class="ai-proposal-status">✅ Modifiche applicate</div></div>`;
+      const n = msg.appliedCount != null ? msg.appliedCount : msg.actions.length;
+      const total = msg.actions.length;
+      const label = n < total ? `✅ Applicate ${n} di ${total} modifiche proposte` : "✅ Modifiche applicate";
+      return `<div class="ai-msg bot ai-proposal ai-proposal-done"><div class="ai-proposal-status">${label}</div></div>`;
     }
     if (msg.status === "cancelled") {
       return `<div class="ai-msg bot ai-proposal ai-proposal-done"><div class="ai-proposal-status">Modifiche annullate</div></div>`;
     }
+    // Ogni voce ha una spunta indipendente, selezionata di default: non è
+    // tutto-o-niente, si può scartare solo qualcuna delle modifiche proposte.
     return `<div class="ai-msg bot ai-proposal" data-msg-idx="${idx}">
-      <div class="ai-proposal-head">Modifiche proposte</div>
-      <ul class="ai-proposal-list">${msg.actions.map(a => `<li>${esc(a.summary)}</li>`).join("")}</ul>
+      <div class="ai-proposal-head">Modifiche proposte — scegli cosa applicare</div>
+      <div class="ai-proposal-list">${msg.actions.map((a, ai) => `
+        <label class="ai-proposal-item">
+          <input type="checkbox" data-proposal-check="${idx}|${ai}" ${a.selected !== false ? "checked" : ""}>
+          <span>${esc(a.summary)}</span>
+        </label>`).join("")}</div>
       <div class="ai-proposal-actions">
-        <button type="button" class="ghost small" data-proposal-cancel="${idx}">Annulla</button>
-        <button type="button" class="primary small" data-proposal-apply="${idx}">✅ Applica</button>
+        <button type="button" class="ghost small" data-proposal-cancel="${idx}">Annulla tutto</button>
+        <button type="button" class="primary small" data-proposal-apply="${idx}">✅ Applica selezionate</button>
       </div>
     </div>`;
   }
@@ -413,29 +424,43 @@ const Assistant = (function () {
     if (typeof UI !== "undefined" && UI.toast) UI.toast("Conversazione cancellata");
   }
 
-  /* Esegue una proposta già validata: rivalida ogni singola azione appena
-     prima di scriverla (lo stato può essere cambiato nel frattempo, es. una
-     scheda cancellata a mano) e salta silenziosamente quelle non più valide
-     invece di applicarle a metà o rompersi. */
+  function toggleProposalAction(msgIdx, actionIdx, checked) {
+    const msg = history()[msgIdx];
+    if (!msg || !msg.actions || !msg.actions[actionIdx] || msg.status) return;
+    msg.actions[actionIdx].selected = !!checked;
+    Store.save();
+  }
+
+  /* Esegue solo le voci con la spunta attiva (non tutto-o-niente): ognuna
+     viene rivalidata appena prima di scriverla — lo stato può essere
+     cambiato nel frattempo (es. una scheda cancellata a mano) — e quelle
+     non più valide vengono saltate silenziosamente invece di rompere
+     l'applicazione delle altre. */
   function applyProposal(idx) {
     const h = history();
     const msg = h[idx];
     if (!msg || !msg.actions || !msg.actions.length || msg.status) return;
+    const toApply = msg.actions.filter(a => a.selected !== false);
+    if (!toApply.length) {
+      if (typeof UI !== "undefined" && UI.toast) UI.toast("Nessuna modifica selezionata");
+      return;
+    }
     let applied = 0, skipped = 0;
-    msg.actions.forEach(a => {
+    toApply.forEach(a => {
       const spec = ACTIONS[a.tool];
       if (!spec || spec.validate(a.input)) { skipped++; return; }
       spec.apply(a.input);
       applied++;
     });
     msg.status = "applied";
+    msg.appliedCount = applied;
     Store.save();
     if (typeof UI !== "undefined") {
       UI.renderContacts();
       UI.renderItinerary();
       UI.renderChecklist();
       UI.renderDashboard();
-      if (UI.toast) UI.toast(skipped ? `✅ Applicate ${applied}, ${skipped} non più valide` : "✅ Modifiche applicate");
+      if (UI.toast) UI.toast(skipped ? `✅ Applicate ${applied}, ${skipped} non più valide` : `✅ Applicate ${applied} modifiche`);
     }
     renderThread();
   }
@@ -482,6 +507,12 @@ const Assistant = (function () {
       if (applyBtn) { applyProposal(+applyBtn.dataset.proposalApply); return; }
       const cancelBtn = e.target.closest("[data-proposal-cancel]");
       if (cancelBtn) { cancelProposal(+cancelBtn.dataset.proposalCancel); return; }
+    });
+    document.addEventListener("change", e => {
+      const chk = e.target.closest("[data-proposal-check]");
+      if (!chk) return;
+      const [msgIdx, actionIdx] = chk.dataset.proposalCheck.split("|").map(Number);
+      toggleProposalAction(msgIdx, actionIdx, chk.checked);
     });
     renderThread();
   }
