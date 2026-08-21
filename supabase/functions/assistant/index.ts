@@ -49,14 +49,20 @@ del viaggio (destinazione, date, tariffa, mezzo di trasporto...), bagagli o acco
 richieste su questi temi spiega che da qui non puoi modificarli.
 
 POI UTILI, NON SOLO UN NOME — quando aggiungi o modifichi un POI, valorizza sempre "addr" con
-l'indirizzo o il luogo se lo conosci o riesci a dedurlo dal nome e dalla destinazione del viaggio (mai
-inventare un indirizzo che non conosci: in quel caso lascialo vuoto), e usa "notes" per informazioni
-pratiche già note (orari, prezzo, se serve prenotazione, note dell'utente) — un POI con solo il nome è
-poco utile. Se il luogo è un'attività prenotabile con un riferimento di contatto (una struttura, un
-ristorante con prenotazione, un trasporto con un numero/riferimento) e l'utente ti fornisce quel
-riferimento (telefono, email, nome dell'attività), proponi ANCHE un contatto (add_contact)
-corrispondente, oltre al POI — sono due voci distinte e complementari (il POI è il luogo da visitare, il
-contatto è per chiamare o prenotare), non serve scegliere solo una delle due.`;
+l'indirizzo o il luogo, e usa "notes" per informazioni pratiche (orari, prezzo, se serve prenotazione) —
+un POI con solo il nome è poco utile. Se il luogo è un'attività prenotabile con un riferimento di
+contatto (una struttura, un ristorante con prenotazione, un trasporto con un numero/riferimento),
+proponi ANCHE un contatto (add_contact) corrispondente, oltre al POI — sono due voci distinte e
+complementari (il POI è il luogo da visitare, il contatto è per chiamare o prenotare), non serve
+scegliere solo una delle due.
+
+RICERCA WEB — hai a disposizione uno strumento di ricerca sul web: usalo quando ti serve un dato reale
+che non hai né nel contesto del viaggio né nella tua conoscenza affidabile (es. il numero di telefono o
+l'indirizzo esatto di un locale, gli orari di apertura di un museo, se serve prenotazione), specialmente
+prima di proporre un add_poi/add_contact con questi campi. Usala con criterio, non per ogni messaggio:
+solo quando il dato mancante serve davvero a completare quello che l'utente ha chiesto. Se dopo la
+ricerca non trovi un dato affidabile, dillo e lascia il campo vuoto — non inventarlo comunque. Non
+usarla per argomenti fuori ambito (resta valido il rifiuto in una riga per richieste non di viaggio).`;
 
 const POI_CATS = ["visita", "cibo", "trasporto", "shopping", "altro"];
 const CONTACT_KINDS = ["struttura", "emergenza", "trasporto", "ristorante", "altro"];
@@ -223,6 +229,12 @@ const TOOLS = [
       required: ["id"],
     },
   },
+  // Strumento server-side di Anthropic (gira sui server di Anthropic, non
+  // qui): niente da eseguire lato nostro, Claude lo usa autonomamente e i
+  // risultati arrivano già dentro la risposta come blocchi
+  // "web_search_tool_result", filtrati via dai blocchi che leggiamo (text/
+  // tool_use) come tutto il resto che non è testo o una delle 12 azioni.
+  { type: "web_search_20260209", name: "web_search", max_uses: 3 },
 ];
 
 const MAX_BODY_BYTES = 100 * 1024; // 100KB, più che sufficiente per contesto + storico chat
@@ -274,19 +286,15 @@ interface ClaudeReply {
   actions: ProposedAction[];
 }
 
-async function callClaude(messages: ChatMessage[], context: Record<string, unknown>): Promise<ClaudeReply> {
-  const system = SYSTEM_PROMPT + "\n\nContesto del viaggio (JSON):\n" + JSON.stringify(context);
-  const payload = {
-    model: ANTHROPIC_MODEL,
-    max_tokens: 1200,
-    system,
-    tools: TOOLS,
-    messages: messages.slice(-12).map(m => ({
-      role: m && m.role === "assistant" ? "assistant" : "user",
-      content: String((m && m.content) || ""),
-    })),
-  };
+// Il ciclo di ricerca web di Claude è server-side: se supera il suo limite
+// interno (10 iterazioni), l'API risponde con stop_reason "pause_turn"
+// invece di finire il turno. Per riprendere basta reinviare la stessa
+// conversazione con la risposta parziale accodata come turno assistant —
+// niente messaggio utente fittizio, il server capisce da solo dove
+// ripartire. Un tetto sui tentativi evita un ciclo (e una spesa) senza fine.
+const MAX_PAUSE_CONTINUATIONS = 3;
 
+async function callAnthropic(payload: Record<string, unknown>): Promise<any> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -296,12 +304,36 @@ async function callClaude(messages: ChatMessage[], context: Record<string, unkno
     },
     body: JSON.stringify(payload),
   });
-
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = data?.error?.message || `Errore Anthropic ${res.status}`;
     throw new Error(msg);
   }
+  return data;
+}
+
+async function callClaude(messages: ChatMessage[], context: Record<string, unknown>): Promise<ClaudeReply> {
+  const system = SYSTEM_PROMPT + "\n\nContesto del viaggio (JSON):\n" + JSON.stringify(context);
+  // deno-lint-ignore no-explicit-any
+  let convo: any[] = messages.slice(-12).map(m => ({
+    role: m && m.role === "assistant" ? "assistant" : "user",
+    content: String((m && m.content) || ""),
+  }));
+
+  // deno-lint-ignore no-explicit-any
+  let data: any;
+  for (let attempt = 0; attempt <= MAX_PAUSE_CONTINUATIONS; attempt++) {
+    data = await callAnthropic({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1200,
+      system,
+      tools: TOOLS,
+      messages: convo,
+    });
+    if (data.stop_reason !== "pause_turn") break;
+    convo = [...convo, { role: "assistant", content: data.content }];
+  }
+
   const content = Array.isArray(data.content) ? data.content : [];
   const text = content
     .filter((b: { type?: string }) => b && b.type === "text")
