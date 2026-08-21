@@ -1927,6 +1927,17 @@ const UI = {
     const s = Store.s, t = s.trip;
     const box = $("#itin-days");
     if (!t.start || !t.end) { box.innerHTML = `<p class="note">Configura le date del viaggio.</p>`; return; }
+
+    // Ricorda quali giorni erano aperti prima di ricostruire il DOM: ogni
+    // azione che richiama renderItinerary() (elimina/modifica/aggiungi
+    // un'attività, applicare una proposta dell'assistente...) rigenera tutti
+    // i <details>, e senza questo richiuderebbe il giorno che si sta
+    // modificando tornando alla sola vista "oggi aperto" — sembra di essere
+    // tornati alla home dell'itinerario invece di restare dove si era.
+    const openIsos = new Set(
+      Array.from(box.querySelectorAll("details.day[open]")).map(d => d.dataset.day)
+    );
+
     const days = [];
     for (let d = new Date(t.start + "T00:00:00"); d <= new Date(t.end + "T00:00:00"); d.setDate(d.getDate() + 1)) {
       days.push(new Date(d));
@@ -1971,7 +1982,11 @@ const UI = {
           </div>`;
       }
 
-      return `<details class="day" id="day-${iso}" data-day="${iso}" ${iso === todayIso || (i === 0 && !count) ? "open" : ""}>
+      // Ai render successivi al primo (openIsos non vuoto) si rispetta quello
+      // che l'utente aveva già aperto, non l'euristica "oggi/primo giorno
+      // vuoto" — quella vale solo per il primissimo caricamento del tab.
+      const isOpen = openIsos.size ? openIsos.has(iso) : (iso === todayIso || (i === 0 && !count));
+      return `<details class="day" id="day-${iso}" data-day="${iso}" ${isOpen ? "open" : ""}>
         <summary>
           <span>Giorno ${i + 1} — ${d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} ${wBadge}</span>
           <span class="dn">${count} attività</span>
