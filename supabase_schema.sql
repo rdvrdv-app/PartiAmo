@@ -392,3 +392,41 @@ drop policy if exists "checklists_all" on public.checklists;
 
 create policy "checklists_all" on public.checklists
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ============================================================
+-- 9. NOTIFICHE PUSH (PRIVATE PER DISPOSITIVO/UTENTE)
+-- ============================================================
+-- Un'iscrizione push (endpoint + chiavi) è un dato di dispositivo, non di
+-- viaggio: a differenza di POI/itinerario/contatti, non va condivisa con
+-- gli altri partecipanti (chiunque conosca l'endpoint potrebbe mandare
+-- notifiche a quel dispositivo). Stessa logica "solo il proprietario"
+-- della checklist, non quella "is_trip_member" di POI/itinerario/contatti.
+-- notified_for: la data/ora di partenza (trips.prefs->>'departureAt') per
+-- cui è già stato inviato l'avviso — evita di notificare due volte per lo
+-- stesso volo e si azzera da sola quando l'utente cambia data (l'Edge
+-- Function confronta sempre col valore attuale, non deve "resettare" nulla).
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid references public.trips(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  notified_for text,
+  created_at timestamp with time zone default now()
+);
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists "push_subscriptions_all" on public.push_subscriptions;
+
+create policy "push_subscriptions_all" on public.push_subscriptions
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+create index if not exists push_subscriptions_trip_id_idx on public.push_subscriptions (trip_id);
+
+-- La Edge Function che invia le notifiche gira con la service role key
+-- (bypassa RLS per definizione, non le serve una policy dedicata) mentre
+-- legge trip.prefs->>'departureAt' per sapere quando avvisare: nessuna
+-- colonna nuova su trips, si appoggia allo stesso prefs jsonb già usato
+-- per bagagli e preferenze.
