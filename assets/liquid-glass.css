@@ -173,9 +173,31 @@ html[data-theme="dark"] body::after {
    voce e la successiva era bianco translucido sopra un riempimento
    altrettanto bianco translucido — nessun vero contrasto, spariva in
    entrambi i temi. Un colore dedicato, tarato sul testo invece che sul
-   vetro, lo rende visibile senza toccare --border globale. */
-.item { border-top-color: rgba(13,20,29,.16) !important; }
-html[data-theme="dark"] .item { border-top-color: rgba(255,255,255,.22) !important; }
+   vetro, lo rende visibile senza toccare --border globale. Opacità più
+   alta della prima versione: a schermo restava comunque troppo tenue. */
+.item { border-top-color: rgba(13,20,29,.28) !important; }
+html[data-theme="dark"] .item { border-top-color: rgba(255,255,255,.32) !important; }
+
+/* ---------- checkbox della checklist e delle proposte dell'assistente ---------- */
+/* Stesso problema, sul controllo invece che sul divisore: "input, select,
+   textarea" (styles.css) dà a OGNI input, checkbox comprese, lo stesso
+   border/background quasi-bianco del vetro, quindi il quadratino risultava
+   quasi invisibile sopra la riga altrettanto chiara — il bordo superiore
+   per primo. Un semplice "border" personalizzato non basta: un checkbox
+   nativo (senza appearance:none) in Chrome/Chromium ignora il border
+   dell'autore per il proprio contorno anche se ne accetta il background,
+   verificato — il box-shadow invece è un livello di disegno separato dal
+   widget nativo e viene sempre rispettato: usato come "bordo" sintetico. */
+.item input[type="checkbox"],
+.ai-proposal-item input[type="checkbox"] {
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: 0 0 0 1.5px rgba(13,20,29,.4) !important;
+}
+html[data-theme="dark"] .item input[type="checkbox"],
+html[data-theme="dark"] .ai-proposal-item input[type="checkbox"] {
+  background: rgba(255,255,255,.14) !important;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,.5) !important;
+}
 
 /* ---------- topbar e dock ---------- */
 
