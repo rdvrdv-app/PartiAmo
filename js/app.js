@@ -611,6 +611,16 @@ const UI = {
     $("#tp-fare").innerHTML = Object.entries(a.fares).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
     if (selected && a.fares[selected]) $("#tp-fare").value = selected;
   },
+  /* Converte l'ISO UTC assoluto salvato in trip.departureAt nel formato
+     locale (senza fuso) che <input type=datetime-local> si aspetta —
+     rilocalizzato su chi sta guardando ora, non su chi l'ha inserito. */
+  isoToDatetimeLocal(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return "";
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  },
   loadTripForm() {
     const t = Store.s.trip;
     $("#tp-dest").value = t.dest; $("#tp-country").value = t.country;
@@ -619,6 +629,7 @@ const UI = {
     $("#tp-airline").value = t.airline; this.fillFares(t.fare);
     if ($("#tp-travelers")) $("#tp-travelers").value = t.travelers || 1;
     $("#tp-laundry").value = t.laundry;
+    if ($("#tp-departure")) $("#tp-departure").value = this.isoToDatetimeLocal(t.departureAt);
     this.renderTripLuggages();
   },
   /* Il set di colli (scheda Bagagli) è l'unica fonte: trip.luggages ne è la proiezione. */
@@ -718,6 +729,14 @@ const UI = {
       t.airline = $("#tp-airline").value; t.fare = $("#tp-fare").value;
       t.travelers = 1;
       t.laundry = $("#tp-laundry").value;
+      // <input type=datetime-local> non porta il fuso orario: va convertito
+      // subito in un istante assoluto (ISO UTC), altrimenti il server che
+      // programma la notifica non saprebbe rispetto a quale fuso calcolare
+      // "24 ore prima" — new Date(stringa-locale) la interpreta nel fuso
+      // del browser che la sta compilando, quindi il momento resta corretto
+      // indipendentemente da dove gira poi il cron.
+      const depVal = $("#tp-departure").value;
+      t.departureAt = depVal ? new Date(depVal).toISOString() : "";
       if (t.transport === "auto" && (!Store.s.bags || !Store.s.bags.length)) { t.luggages = []; }
       if (t.end < t.start) { this.toast("La data di rientro precede la partenza"); return; }
       Store.save();

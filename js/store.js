@@ -9,7 +9,12 @@ const Store = (function () {
         dest: "", country: "", start: "", end: "", type: "urbano",
         transport: "aereo", airline: "ryanair", fare: "", luggage: "trolley",
         luggages: [{ id: "l1", type: "zaino" }, { id: "l2", type: "trolley" }],
-        travelers: 1, laundry: "no"
+        travelers: 1, laundry: "no",
+        // Solo per programmare la notifica di check-in: mai collegata ai
+        // documenti del Vault, che restano locali. Formato datetime-local
+        // (YYYY-MM-DDTHH:MM), niente timezone: si assume l'ora locale
+        // dell'utente che l'ha inserita.
+        departureAt: ""
       },
       weather: null,
       checklist: [],
