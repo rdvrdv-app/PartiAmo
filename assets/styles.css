@@ -602,19 +602,30 @@ dialog.modal[open] {
 #form-ai > input { flex: 1 1 auto; min-width: 0; }
 #form-ai > button { flex: 0 0 auto; }
 
+/* Su mobile resta un cerchietto piccolo con solo l'icona: da pieno "pillola
+   con testo" copriva un quarto di schermo in larghezza, finendo sopra ai
+   campi dei form quando si scorre una pagina lunga (es. "Nuovo contatto") —
+   niente scroll lo sposta perché è fixed, quindi il campo sotto restava
+   inutilizzabile. L'etichetta torna solo da desktop in su, dove lo spazio
+   non manca e il bottone è comunque in un angolo libero da contenuti. */
 #btn-ai-fab {
   position: fixed; right: 16px; z-index: 45;
   bottom: calc(90px + env(safe-area-inset-bottom));
-  display: inline-flex; align-items: center; gap: 9px;
-  padding: 13px 18px; border: 0; border-radius: 99px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
   color: #fff; font-weight: 700; font-size: 14px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 45%, transparent);
 }
+#btn-ai-fab .fab-label { display: none; }
 #btn-ai-fab:active { transform: scale(.97); }
 
 @media (min-width: 760px) {
-  #btn-ai-fab { right: 24px; bottom: 24px; }
+  #btn-ai-fab {
+    right: 24px; bottom: 24px; width: auto; height: auto;
+    padding: 13px 18px; border-radius: 99px;
+  }
+  #btn-ai-fab .fab-label { display: inline; }
   .ai-layout { display: grid; grid-template-columns: 1fr 320px; gap: 12px; align-items: start; }
 }
 

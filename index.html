@@ -31,8 +31,8 @@
      può continuare a servire da cache un file vecchio per giorni anche dopo
      un deploy. Va incrementata, sugli uni e sugli altri insieme, ad ogni
      modifica rilevante a un file css o js. -->
-<link rel="stylesheet" href="assets/styles.css?v=11">
-<link rel="stylesheet" href="assets/liquid-glass.css?v=11">
+<link rel="stylesheet" href="assets/styles.css?v=12">
+<link rel="stylesheet" href="assets/liquid-glass.css?v=12">
 </head>
 <body>
 
@@ -505,29 +505,29 @@
   </div>
 </dialog>
 
-<button id="btn-ai-fab" type="button">✦ Chiedi all'assistente</button>
+<button id="btn-ai-fab" type="button" aria-label="Chiedi all'assistente">✦<span class="fab-label"> Chiedi all'assistente</span></button>
 
 <div id="toast"></div>
 
 <!-- Tutti gli script sono "defer": non bloccano il primo rendering e vengono
      comunque eseguiti nell'ordine di dichiarazione, prima di DOMContentLoaded.
-     Stessa query string di versione dei CSS in testa al file (oggi ?v=11):
+     Stessa query string di versione dei CSS in testa al file (oggi ?v=12):
      senza, un iPhone (soprattutto la PWA aggiunta alla Home) può continuare
      a servire da cache uno script vecchio per giorni anche dopo un deploy —
      va incrementata insieme a quella dei CSS ad ogni modifica rilevante a
      un file js/*.js. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" defer></script>
-<script src="js/supabase.js?v=11" defer></script>
+<script src="js/supabase.js?v=12" defer></script>
 <script src="vendor/tesseract.min.js" defer></script>
 <script src="vendor/pdf.min.js" defer></script>
-<script src="js/scan.js?v=11" defer></script>
-<script src="js/data.js?v=11" defer></script>
-<script src="js/store.js?v=11" defer></script>
-<script src="js/weather.js?v=11" defer></script>
-<script src="js/checklist.js?v=11" defer></script>
-<script src="js/baggage.js?v=11" defer></script>
-<script src="js/ocr.js?v=11" defer></script>
-<script src="js/app.js?v=11" defer></script>
-<script src="js/assistant.js?v=11" defer></script>
+<script src="js/scan.js?v=12" defer></script>
+<script src="js/data.js?v=12" defer></script>
+<script src="js/store.js?v=12" defer></script>
+<script src="js/weather.js?v=12" defer></script>
+<script src="js/checklist.js?v=12" defer></script>
+<script src="js/baggage.js?v=12" defer></script>
+<script src="js/ocr.js?v=12" defer></script>
+<script src="js/app.js?v=12" defer></script>
+<script src="js/assistant.js?v=12" defer></script>
 </body>
 </html>

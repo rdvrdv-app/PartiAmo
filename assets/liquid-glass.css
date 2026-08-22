@@ -166,6 +166,17 @@ html[data-theme="dark"] body::after {
 }
 .card.hero .card-label, .card.hero .hero-sub { color: rgba(255,255,255,.86); }
 
+/* ---------- checklist: divisori tra voci ---------- */
+/* .items/.group-head non fanno parte della "ricetta" del vetro qui sopra
+   (niente blur, niente bordo/ombra dedicati): ereditano solo i token
+   --surface/--border ridefiniti globalmente, quindi il divisore tra una
+   voce e la successiva era bianco translucido sopra un riempimento
+   altrettanto bianco translucido — nessun vero contrasto, spariva in
+   entrambi i temi. Un colore dedicato, tarato sul testo invece che sul
+   vetro, lo rende visibile senza toccare --border globale. */
+.item { border-top-color: rgba(13,20,29,.16) !important; }
+html[data-theme="dark"] .item { border-top-color: rgba(255,255,255,.22) !important; }
+
 /* ---------- topbar e dock ---------- */
 
 .topbar {
