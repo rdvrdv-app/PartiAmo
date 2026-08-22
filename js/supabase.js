@@ -129,7 +129,8 @@ const Supa = (function () {
         luggages: trip.luggages || [],
         laundry: trip.laundry || "no",
         bags: (state && state.bags) || [],
-        departureAt: trip.departureAt || ""
+        departureAt: trip.departureAt || "",
+        returnDepartureAt: trip.returnDepartureAt || ""
       }
     };
     if (ownedByMe) row.owner_id = userId;
@@ -155,7 +156,8 @@ const Supa = (function () {
       luggages: Array.isArray(prefs.luggages) ? prefs.luggages : null,
       laundry: prefs.laundry || "no",
       bags: Array.isArray(prefs.bags) ? prefs.bags : null,
-      departureAt: prefs.departureAt || ""
+      departureAt: prefs.departureAt || "",
+      returnDepartureAt: prefs.returnDepartureAt || ""
     };
   }
 

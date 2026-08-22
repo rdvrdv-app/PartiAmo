@@ -31,8 +31,8 @@
      può continuare a servire da cache un file vecchio per giorni anche dopo
      un deploy. Va incrementata, sugli uni e sugli altri insieme, ad ogni
      modifica rilevante a un file css o js. -->
-<link rel="stylesheet" href="assets/styles.css?v=15">
-<link rel="stylesheet" href="assets/liquid-glass.css?v=15">
+<link rel="stylesheet" href="assets/styles.css?v=16">
+<link rel="stylesheet" href="assets/liquid-glass.css?v=16">
 </head>
 <body>
 
@@ -369,8 +369,11 @@
         <label class="lbl">Tariffa
           <select id="tp-fare"></select>
         </label>
-        <label class="lbl">Data e ora di partenza del volo (per la notifica di check-in)
+        <label class="lbl">Partenza volo andata (per la notifica di check-in)
           <input id="tp-departure" type="datetime-local">
+        </label>
+        <label class="lbl">Partenza volo ritorno (per la notifica di check-in)
+          <input id="tp-departure-return" type="datetime-local">
         </label>
         <div class="col" style="grid-column: 1 / -1; gap:6px; margin-top:4px">
           <label class="lbl">Bagaglio disponibile</label>
@@ -393,7 +396,7 @@
 
   <div class="panel">
     <div class="panel-head"><h3>🔔 Notifica di check-in volo</h3></div>
-    <p class="note" id="push-status">Compila data/ora di partenza qui sopra, poi attiva le notifiche: un avviso arriverà 24 ore prima, anche ad app chiusa.</p>
+    <p class="note" id="push-status">Compila data/ora di partenza di andata e/o ritorno qui sopra, poi attiva le notifiche: un avviso arriverà 24 ore prima di ciascun volo compilato, anche ad app chiusa.</p>
     <div class="row">
       <button type="button" class="primary" id="btn-push-enable">🔔 Attiva notifiche</button>
       <button type="button" class="ghost hidden" id="btn-push-disable">🔕 Disattiva notifiche</button>
@@ -524,24 +527,24 @@
 
 <!-- Tutti gli script sono "defer": non bloccano il primo rendering e vengono
      comunque eseguiti nell'ordine di dichiarazione, prima di DOMContentLoaded.
-     Stessa query string di versione dei CSS in testa al file (oggi ?v=15):
+     Stessa query string di versione dei CSS in testa al file (oggi ?v=16):
      senza, un iPhone (soprattutto la PWA aggiunta alla Home) può continuare
      a servire da cache uno script vecchio per giorni anche dopo un deploy —
      va incrementata insieme a quella dei CSS ad ogni modifica rilevante a
      un file js/*.js. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" defer></script>
-<script src="js/supabase.js?v=15" defer></script>
+<script src="js/supabase.js?v=16" defer></script>
 <script src="vendor/tesseract.min.js" defer></script>
 <script src="vendor/pdf.min.js" defer></script>
-<script src="js/scan.js?v=15" defer></script>
-<script src="js/data.js?v=15" defer></script>
-<script src="js/store.js?v=15" defer></script>
-<script src="js/weather.js?v=15" defer></script>
-<script src="js/checklist.js?v=15" defer></script>
-<script src="js/baggage.js?v=15" defer></script>
-<script src="js/ocr.js?v=15" defer></script>
-<script src="js/app.js?v=15" defer></script>
-<script src="js/assistant.js?v=15" defer></script>
-<script src="js/push.js?v=15" defer></script>
+<script src="js/scan.js?v=16" defer></script>
+<script src="js/data.js?v=16" defer></script>
+<script src="js/store.js?v=16" defer></script>
+<script src="js/weather.js?v=16" defer></script>
+<script src="js/checklist.js?v=16" defer></script>
+<script src="js/baggage.js?v=16" defer></script>
+<script src="js/ocr.js?v=16" defer></script>
+<script src="js/app.js?v=16" defer></script>
+<script src="js/assistant.js?v=16" defer></script>
+<script src="js/push.js?v=16" defer></script>
 </body>
 </html>

@@ -214,6 +214,11 @@ label.lbl { display: flex; flex-direction: column; gap: 5px; font-size: 12px; co
 .row > button, .row > .btn-file { flex: 0 1 auto; }
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Le celle di una grid hanno min-width:auto di default: un input date/
+   datetime-local non si restringe sotto la sua larghezza intrinseca (larga
+   su mobile), quindi la cella si allarga con lui e sfonda a destra il resto
+   del layout. min-width:0 lascia che sia l'input a restringersi. */
+.grid-2 > *, .grid-3 > * { min-width: 0; }
 
 @media (max-width: 440px) {
   /* Su schermi stretti la destinazione è già ben visibile nella card in alto

@@ -39,7 +39,7 @@ const Push = (function () {
   async function enable() {
     if (!supported()) throw new Error("Le notifiche push non sono supportate su questo browser/dispositivo.");
     const trip = Store.s.trip;
-    if (!trip.departureAt) throw new Error("Inserisci prima data e ora di partenza del volo.");
+    if (!trip.departureAt && !trip.returnDepartureAt) throw new Error("Inserisci prima data e ora di partenza del volo (andata e/o ritorno).");
     const user = (typeof Supa !== "undefined" && Supa.getUser) ? Supa.getUser() : null;
     if (!user) throw new Error("Serve un account per attivare le notifiche: sincronizzano l'orario del volo.");
 
@@ -103,8 +103,8 @@ const Push = (function () {
       disableBtn.classList.toggle("hidden", !active);
       if (statusEl) {
         statusEl.textContent = active
-          ? "🔔 Notifiche attive: un avviso arriverà 24 ore prima della partenza, anche ad app chiusa."
-          : "Compila data/ora di partenza qui sopra, poi attiva le notifiche: un avviso arriverà 24 ore prima, anche ad app chiusa.";
+          ? "🔔 Notifiche attive: un avviso arriverà 24 ore prima di ciascun volo compilato (andata e/o ritorno), anche ad app chiusa."
+          : "Compila data/ora di partenza di andata e/o ritorno qui sopra, poi attiva le notifiche: un avviso arriverà 24 ore prima di ciascun volo compilato, anche ad app chiusa.";
       }
     }
 

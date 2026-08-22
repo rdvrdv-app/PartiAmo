@@ -630,6 +630,7 @@ const UI = {
     if ($("#tp-travelers")) $("#tp-travelers").value = t.travelers || 1;
     $("#tp-laundry").value = t.laundry;
     if ($("#tp-departure")) $("#tp-departure").value = this.isoToDatetimeLocal(t.departureAt);
+    if ($("#tp-departure-return")) $("#tp-departure-return").value = this.isoToDatetimeLocal(t.returnDepartureAt);
     this.renderTripLuggages();
   },
   /* Il set di colli (scheda Bagagli) è l'unica fonte: trip.luggages ne è la proiezione. */
@@ -737,6 +738,8 @@ const UI = {
       // indipendentemente da dove gira poi il cron.
       const depVal = $("#tp-departure").value;
       t.departureAt = depVal ? new Date(depVal).toISOString() : "";
+      const depReturnVal = $("#tp-departure-return").value;
+      t.returnDepartureAt = depReturnVal ? new Date(depReturnVal).toISOString() : "";
       if (t.transport === "auto" && (!Store.s.bags || !Store.s.bags.length)) { t.luggages = []; }
       if (t.end < t.start) { this.toast("La data di rientro precede la partenza"); return; }
       Store.save();

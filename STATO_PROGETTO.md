@@ -267,13 +267,14 @@ Richiede vera infrastruttura server-side: una notifica ad app chiusa può
 partire solo se qualcosa che gira sempre (un cron server-side) sa quando
 "svegliare" il dispositivo — il browser da solo non può farlo.
 
-- **`trip.departureAt`**: nuovo campo (tab Viaggio), inserito a mano,
-  **deliberatamente separato dal Vault** (che resta 100% locale) — è
-  l'unico dato che uno scopo puramente di notifica fa arrivare al cloud.
-  Salvato come ISO UTC assoluto: `<input type=datetime-local>` non porta
-  il fuso, la conversione avviene subito lato client
+- **`trip.departureAt` / `trip.returnDepartureAt`**: due campi (tab
+  Viaggio, andata e ritorno), inseriti a mano, **deliberatamente separati
+  dal Vault** (che resta 100% locale) — sono gli unici dati che uno scopo
+  puramente di notifica fanno arrivare al cloud. Salvati come ISO UTC
+  assoluto: `<input type=datetime-local>` non porta il fuso, la
+  conversione avviene subito lato client
   (`new Date(valore-locale).toISOString()`) nel fuso di chi lo compila,
-  non lasciata al server.
+  non lasciata al server. Compilarne uno solo notifica solo quel volo.
 - **`js/push.js` + `sw.js`**: pannello "🔔 Notifica di check-in volo"
   (tab Viaggio) con toggle attiva/disattiva. Registra il service worker,
   chiede il permesso notifiche, sottoscrive il browser (`PushManager`,
@@ -283,19 +284,22 @@ partire solo se qualcosa che gira sempre (un cron server-side) sa quando
   l'app sia aggiunta alla schermata Home (iOS 16.4+ — Safari normale non
   supporta le push web, vincolo di piattaforma non aggirabile).
 - **`push_subscriptions`** (tabella, in coda a `supabase_schema.sql`):
-  endpoint/chiavi/trip_id/user_id/notified_for. Policy "solo il
-  proprietario" (non condivisa con gli altri partecipanti: un endpoint
-  push è un dato di dispositivo).
+  endpoint/chiavi/trip_id/user_id/notified_for/notified_for_return (una
+  colonna di tracciamento per gamba di volo, così andata e ritorno si
+  notificano in modo indipendente). Policy "solo il proprietario" (non
+  condivisa con gli altri partecipanti: un endpoint push è un dato di
+  dispositivo).
 - **`supabase/functions/send-checkin-reminders/index.ts`**: Edge
   Function schedulata via cron (pg_cron + pg_net, `net.http_post` ogni 15
   minuti, protetta da un header `x-cron-secret` condiviso — vedi
-  `CRON_SECRET`). Con la service role key, per ogni viaggio la cui
-  partenza cade nella finestra "tra 24h e adesso" manda una push a ogni
-  iscrizione non ancora notificata per quella data (`notified_for` evita
-  doppi invii, si "riarma" da solo se la data cambia). Usa la libreria
-  `web-push` (via `esm.sh`, nessuna dipendenza npm nel repo) per firma
-  VAPID e cifratura payload. Iscrizioni scadute (404/410 dal servizio
-  push) vengono rimosse in automatico.
+  `CRON_SECRET`). Con la service role key, per ogni viaggio e per ciascuna
+  gamba (andata/ritorno) la cui partenza cade nella finestra "tra 24h e
+  adesso" manda una push a ogni iscrizione non ancora notificata per
+  quella data (`notified_for`/`notified_for_return` evitano doppi invii,
+  si "riarmano" da soli se la data cambia). Usa la libreria `web-push`
+  (via `esm.sh`, nessuna dipendenza npm nel repo) per firma VAPID e
+  cifratura payload. Iscrizioni scadute (404/410 dal servizio push)
+  vengono rimosse in automatico.
 
 **Verificato** (senza un deploy reale, quindi senza consegna push
 end-to-end): registrazione service worker, conversione datetime-local↔ISO

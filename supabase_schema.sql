@@ -401,9 +401,11 @@ create policy "checklists_all" on public.checklists
 -- gli altri partecipanti (chiunque conosca l'endpoint potrebbe mandare
 -- notifiche a quel dispositivo). Stessa logica "solo il proprietario"
 -- della checklist, non quella "is_trip_member" di POI/itinerario/contatti.
--- notified_for: la data/ora di partenza (trips.prefs->>'departureAt') per
--- cui è già stato inviato l'avviso — evita di notificare due volte per lo
--- stesso volo e si azzera da sola quando l'utente cambia data (l'Edge
+-- notified_for / notified_for_return: la data/ora di partenza del volo di
+-- andata (trips.prefs->>'departureAt') e di ritorno (prefs->>'returnDepartureAt')
+-- per cui è già stato inviato l'avviso — colonne separate perché i due voli
+-- si notificano in modo indipendente. Evitano di notificare due volte per lo
+-- stesso volo e si azzerano da sole quando l'utente cambia data (l'Edge
 -- Function confronta sempre col valore attuale, non deve "resettare" nulla).
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
@@ -413,8 +415,11 @@ create table if not exists public.push_subscriptions (
   p256dh text not null,
   auth text not null,
   notified_for text,
+  notified_for_return text,
   created_at timestamp with time zone default now()
 );
+
+alter table public.push_subscriptions add column if not exists notified_for_return text;
 
 alter table public.push_subscriptions enable row level security;
 
@@ -427,6 +432,6 @@ create index if not exists push_subscriptions_trip_id_idx on public.push_subscri
 
 -- La Edge Function che invia le notifiche gira con la service role key
 -- (bypassa RLS per definizione, non le serve una policy dedicata) mentre
--- legge trip.prefs->>'departureAt' per sapere quando avvisare: nessuna
--- colonna nuova su trips, si appoggia allo stesso prefs jsonb già usato
--- per bagagli e preferenze.
+-- legge trip.prefs->>'departureAt' e prefs->>'returnDepartureAt' per sapere
+-- quando avvisare: nessuna colonna nuova su trips, si appoggia allo stesso
+-- prefs jsonb già usato per bagagli e preferenze.
